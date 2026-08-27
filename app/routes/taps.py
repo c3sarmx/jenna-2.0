@@ -25,6 +25,7 @@ def create_tap_route(business_id):
         "waiter_id": tap[2],
         "source": tap[3],
         "created_at": tap[4].isoformat(),
+        "card_id": tap[5],
     }), 201
 
 
@@ -39,6 +40,7 @@ def get_taps_route(business_id):
             "waiter_id": tap[2],
             "source": tap[3],
             "created_at": tap[4].isoformat(),
+            "card_id": tap[5],
         }
         for tap in taps
     ]), 200

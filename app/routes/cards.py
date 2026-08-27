@@ -82,6 +82,7 @@ def resolve_card_route(public_id):
         business_id=card[1],
         waiter_id=card[4],
         source=source,
+        card_id=card[0],
     )
 
     return redirect(card[3])

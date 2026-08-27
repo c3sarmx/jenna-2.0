@@ -75,11 +75,15 @@ def get_business_analytics(business_id, date_from=None, date_to=None):
             waiter_taps_params = [business_id]
 
             if date_from:
-                waiter_taps_conditions.append("t.created_at::date >= %s")
+                waiter_taps_conditions.append(
+                    "t.created_at::date >= %s"
+                )
                 waiter_taps_params.append(date_from)
 
             if date_to:
-                waiter_taps_conditions.append("t.created_at::date <= %s")
+                waiter_taps_conditions.append(
+                    "t.created_at::date <= %s"
+                )
                 waiter_taps_params.append(date_to)
 
             waiter_taps_where = " AND ".join(waiter_taps_conditions)
@@ -103,7 +107,52 @@ def get_business_analytics(business_id, date_from=None, date_to=None):
 
             taps_by_waiter = cur.fetchall()
 
-            return summary, taps_by_waiter
+            card_taps_conditions = []
+            card_taps_params = []
+
+            if date_from:
+                card_taps_conditions.append(
+                    "t.created_at::date >= %s"
+                )
+                card_taps_params.append(date_from)
+
+            if date_to:
+                card_taps_conditions.append(
+                    "t.created_at::date <= %s"
+                )
+                card_taps_params.append(date_to)
+
+            card_taps_date_filter = ""
+
+            if card_taps_conditions:
+                card_taps_date_filter = (
+                    "AND " + " AND ".join(card_taps_conditions)
+                )
+
+            cur.execute(
+                f"""
+                SELECT
+                    c.id,
+                    c.public_id,
+                    c.waiter_id,
+                    w.name,
+                    COUNT(t.id) AS total_taps
+                FROM cards c
+                JOIN waiters w
+                    ON w.id = c.waiter_id
+                LEFT JOIN taps t
+                    ON t.card_id = c.id
+                    {card_taps_date_filter}
+                WHERE c.business_id = %s
+                GROUP BY c.id, c.public_id, c.waiter_id, w.name
+                ORDER BY total_taps DESC, c.id;
+                """,
+                card_taps_params + [business_id],
+            )
+
+            taps_by_card = cur.fetchall()
+
+            return summary, taps_by_waiter, taps_by_card
 
     finally:
         conn.close()
