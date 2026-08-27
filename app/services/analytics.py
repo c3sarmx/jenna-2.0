@@ -69,7 +69,41 @@ def get_business_analytics(business_id, date_from=None, date_to=None):
                 + taps_params,
             )
 
-            return cur.fetchone()
+            summary = cur.fetchone()
+
+            waiter_taps_conditions = ["t.business_id = %s"]
+            waiter_taps_params = [business_id]
+
+            if date_from:
+                waiter_taps_conditions.append("t.created_at::date >= %s")
+                waiter_taps_params.append(date_from)
+
+            if date_to:
+                waiter_taps_conditions.append("t.created_at::date <= %s")
+                waiter_taps_params.append(date_to)
+
+            waiter_taps_where = " AND ".join(waiter_taps_conditions)
+
+            cur.execute(
+                f"""
+                SELECT
+                    w.id,
+                    w.name,
+                    COUNT(t.id) AS total_taps
+                FROM waiters w
+                LEFT JOIN taps t
+                    ON t.waiter_id = w.id
+                    AND {waiter_taps_where}
+                WHERE w.business_id = %s
+                GROUP BY w.id, w.name
+                ORDER BY total_taps DESC, w.id;
+                """,
+                waiter_taps_params + [business_id],
+            )
+
+            taps_by_waiter = cur.fetchall()
+
+            return summary, taps_by_waiter
 
     finally:
         conn.close()

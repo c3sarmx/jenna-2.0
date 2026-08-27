@@ -11,7 +11,7 @@ def get_business_analytics_route(business_id):
     date_from = request.args.get("from")
     date_to = request.args.get("to")
 
-    analytics = get_business_analytics(
+    summary, taps_by_waiter = get_business_analytics(
         business_id=business_id,
         date_from=date_from,
         date_to=date_to,
@@ -19,12 +19,20 @@ def get_business_analytics_route(business_id):
 
     return jsonify({
         "business_id": business_id,
-        "total_taps": analytics[0],
-        "total_waiters": analytics[1],
-        "latest_review_count": analytics[2],
+        "total_taps": summary[0],
+        "total_waiters": summary[1],
+        "latest_review_count": summary[2],
         "taps_by_source": {
-            "nfc": analytics[3],
-            "qr": analytics[4],
-            "web": analytics[5],
+            "nfc": summary[3],
+            "qr": summary[4],
+            "web": summary[5],
         },
+        "taps_by_waiter": [
+            {
+                "waiter_id": waiter[0],
+                "waiter_name": waiter[1],
+                "total_taps": waiter[2],
+            }
+            for waiter in taps_by_waiter
+        ],
     }), 200
