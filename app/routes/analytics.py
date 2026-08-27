@@ -22,4 +22,9 @@ def get_business_analytics_route(business_id):
         "total_taps": analytics[0],
         "total_waiters": analytics[1],
         "latest_review_count": analytics[2],
+        "taps_by_source": {
+            "nfc": analytics[3],
+            "qr": analytics[4],
+            "web": analytics[5],
+        },
     }), 200

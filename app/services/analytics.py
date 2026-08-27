@@ -47,11 +47,26 @@ def get_business_analytics(business_id, date_from=None, date_to=None):
                      FROM review_snapshots
                      WHERE {snapshot_where}
                      ORDER BY snapshot_date DESC
-                     LIMIT 1) AS latest_review_count;
+                     LIMIT 1) AS latest_review_count,
+
+                    (SELECT COUNT(*) FILTER (WHERE source = 'nfc')
+                     FROM taps
+                     WHERE {taps_where}) AS nfc_taps,
+
+                    (SELECT COUNT(*) FILTER (WHERE source = 'qr')
+                     FROM taps
+                     WHERE {taps_where}) AS qr_taps,
+
+                    (SELECT COUNT(*) FILTER (WHERE source = 'web')
+                     FROM taps
+                     WHERE {taps_where}) AS web_taps;
                 """,
                 taps_params
                 + [business_id]
-                + snapshot_params,
+                + snapshot_params
+                + taps_params
+                + taps_params
+                + taps_params,
             )
 
             return cur.fetchone()
