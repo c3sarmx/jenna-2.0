@@ -26,6 +26,7 @@ CREATE TABLE taps (
     id BIGSERIAL PRIMARY KEY,
     business_id BIGINT NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
     waiter_id BIGINT REFERENCES waiters(id) ON DELETE SET NULL,
+    card_id BIGINT REFERENCES cards(id) ON DELETE SET NULL,
     source VARCHAR(20) NOT NULL DEFAULT 'nfc',
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
@@ -63,6 +64,9 @@ CREATE INDEX idx_taps_waiter
 
 CREATE INDEX idx_taps_created_at
     ON taps(created_at);
+
+CREATE INDEX idx_taps_card
+    ON taps(card_id);
 
 CREATE INDEX idx_review_snapshots_business_date
     ON review_snapshots(business_id, snapshot_date);
