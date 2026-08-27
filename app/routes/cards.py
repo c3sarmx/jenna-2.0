@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, redirect, request
 
 from app.services.taps import create_tap
 
@@ -79,18 +79,8 @@ def resolve_card_route(public_id):
 
     tap = create_tap(
         business_id=card[1],
-        waiter_id=card[3],
+        waiter_id=card[4],
         source=source,
     )
 
-    return jsonify({
-        "card_id": card[0],
-        "business_id": card[1],
-        "business_name": card[2],
-        "waiter_id": card[3],
-        "waiter_name": card[4],
-        "public_id": card[5],
-        "active": card[6],
-        "tap_id": tap[0],
-        "tap_source": tap[3],
-    }), 200
+    return redirect(card[3])

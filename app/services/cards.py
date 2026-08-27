@@ -73,6 +73,7 @@ def get_card_by_public_id(public_id):
                     c.id,
                     c.business_id,
                     b.name,
+                    b.google_review_url,
                     c.waiter_id,
                     w.name,
                     c.public_id,
