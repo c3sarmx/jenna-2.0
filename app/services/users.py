@@ -54,3 +54,27 @@ def get_user_by_email(email):
 
     finally:
         conn.close()
+
+
+def get_user_by_id(user_id):
+    conn = get_connection()
+
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT
+                    id,
+                    email,
+                    active,
+                    created_at
+                FROM users
+                WHERE id = %s;
+                """,
+                (user_id,),
+            )
+
+            return cur.fetchone()
+
+    finally:
+        conn.close()
