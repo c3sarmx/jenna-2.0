@@ -22,3 +22,24 @@ def create_waiter(business_id, name):
 
     finally:
         conn.close()
+
+
+def get_waiters_by_business(business_id):
+    conn = get_connection()
+
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT id, business_id, name, active, created_at
+                FROM waiters
+                WHERE business_id = %s
+                ORDER BY id;
+                """,
+                (business_id,),
+            )
+
+            return cur.fetchall()
+
+    finally:
+        conn.close()
