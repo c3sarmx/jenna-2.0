@@ -5,6 +5,34 @@ CREATE TABLE businesses (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE users (
+    id BIGSERIAL PRIMARY KEY,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE business_users (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    business_id BIGINT NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
+    role VARCHAR(20) NOT NULL DEFAULT 'owner',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT business_users_role_check
+        CHECK (role IN ('owner', 'admin')),
+
+    CONSTRAINT business_users_unique
+        UNIQUE (user_id, business_id)
+);
+
+CREATE INDEX idx_business_users_user
+    ON business_users(user_id);
+
+CREATE INDEX idx_business_users_business
+    ON business_users(business_id);
+
 CREATE TABLE waiters (
     id BIGSERIAL PRIMARY KEY,
     business_id BIGINT NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
