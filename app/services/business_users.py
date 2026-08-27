@@ -52,3 +52,24 @@ def get_user_businesses(user_id):
 
     finally:
         conn.close()
+
+
+def user_has_business_access(user_id, business_id):
+    conn = get_connection()
+
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT 1
+                FROM business_users
+                WHERE user_id = %s
+                  AND business_id = %s;
+                """,
+                (user_id, business_id),
+            )
+
+            return cur.fetchone() is not None
+
+    finally:
+        conn.close()
