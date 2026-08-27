@@ -13,6 +13,15 @@ CREATE TABLE waiters (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE cards (
+    id BIGSERIAL PRIMARY KEY,
+    business_id BIGINT NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
+    waiter_id BIGINT NOT NULL REFERENCES waiters(id) ON DELETE RESTRICT,
+    public_id VARCHAR(64) NOT NULL UNIQUE,
+    active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 CREATE TABLE taps (
     id BIGSERIAL PRIMARY KEY,
     business_id BIGINT NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
@@ -36,6 +45,12 @@ CREATE TABLE review_snapshots (
     CONSTRAINT review_snapshots_unique_date
         UNIQUE (business_id, snapshot_date)
 );
+
+CREATE INDEX idx_cards_business
+    ON cards(business_id);
+
+CREATE INDEX idx_cards_waiter
+    ON cards(waiter_id);
 
 CREATE INDEX idx_waiters_business
     ON waiters(business_id);

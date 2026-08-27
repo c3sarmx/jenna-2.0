@@ -17,6 +17,7 @@ def create_app():
     from app.routes.review_snapshots import review_snapshots_bp
     from app.routes.analytics import analytics_bp
     from app.routes.taps import taps_bp
+    from app.routes.cards import cards_bp
 
     app.register_blueprint(health_bp)
     app.register_blueprint(businesses_bp)
@@ -24,5 +25,6 @@ def create_app():
     app.register_blueprint(review_snapshots_bp)
     app.register_blueprint(analytics_bp)
     app.register_blueprint(taps_bp)
+    app.register_blueprint(cards_bp)
 
     return app
