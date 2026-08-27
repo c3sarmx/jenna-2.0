@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request
 
-from app.services.taps import create_tap
+from app.services.taps import create_tap, get_taps_by_business
 
 
 taps_bp = Blueprint("taps", __name__)
@@ -26,3 +26,19 @@ def create_tap_route(business_id):
         "source": tap[3],
         "created_at": tap[4].isoformat(),
     }), 201
+
+
+@taps_bp.get("/businesses/<int:business_id>/taps")
+def get_taps_route(business_id):
+    taps = get_taps_by_business(business_id)
+
+    return jsonify([
+        {
+            "id": tap[0],
+            "business_id": tap[1],
+            "waiter_id": tap[2],
+            "source": tap[3],
+            "created_at": tap[4].isoformat(),
+        }
+        for tap in taps
+    ]), 200

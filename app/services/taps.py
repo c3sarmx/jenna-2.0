@@ -22,3 +22,24 @@ def create_tap(business_id, waiter_id=None, source="nfc"):
 
     finally:
         conn.close()
+
+
+def get_taps_by_business(business_id):
+    conn = get_connection()
+
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT id, business_id, waiter_id, source, created_at
+                FROM taps
+                WHERE business_id = %s
+                ORDER BY id;
+                """,
+                (business_id,),
+            )
+
+            return cur.fetchall()
+
+    finally:
+        conn.close()
