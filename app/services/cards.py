@@ -93,3 +93,27 @@ def get_card_by_public_id(public_id):
 
     finally:
         conn.close()
+
+def update_card_status(business_id, card_id, active):
+    conn = get_connection()
+
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                UPDATE cards
+                SET active = %s
+                WHERE id = %s
+                  AND business_id = %s
+                RETURNING id, business_id, waiter_id, public_id, active, created_at;
+                """,
+                (active, card_id, business_id),
+            )
+
+            card = cur.fetchone()
+            conn.commit()
+
+            return card
+
+    finally:
+        conn.close()

@@ -6,6 +6,7 @@ from app.services.cards import (
     create_card,
     get_card_by_public_id,
     get_cards_by_business,
+    update_card_status,
 )
 
 
@@ -65,7 +66,7 @@ def resolve_card_route(public_id):
             "error": "card not found"
         }), 404
 
-    if not card[6]:
+    if not card[7]:
         return jsonify({
             "error": "card inactive"
         }), 410
@@ -84,3 +85,37 @@ def resolve_card_route(public_id):
     )
 
     return redirect(card[3])
+
+@cards_bp.patch("/businesses/<int:business_id>/cards/<int:card_id>")
+def update_card_status_route(business_id, card_id):
+    data = request.get_json()
+
+    if not data or "active" not in data:
+        return jsonify({
+            "error": "active is required"
+        }), 400
+
+    if not isinstance(data["active"], bool):
+        return jsonify({
+            "error": "active must be boolean"
+        }), 400
+
+    card = update_card_status(
+        business_id=business_id,
+        card_id=card_id,
+        active=data["active"],
+    )
+
+    if not card:
+        return jsonify({
+            "error": "card not found"
+        }), 404
+
+    return jsonify({
+        "id": card[0],
+        "business_id": card[1],
+        "waiter_id": card[2],
+        "public_id": card[3],
+        "active": card[4],
+        "created_at": card[5].isoformat(),
+    }), 200
