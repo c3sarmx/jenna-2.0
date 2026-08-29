@@ -17,20 +17,29 @@ def create_card(business_id, waiter_id):
                     waiter_id,
                     public_id
                 )
-                VALUES (%s, %s, %s)
+                SELECT %s, id, %s
+                FROM waiters
+                WHERE id = %s
+                  AND business_id = %s
                 RETURNING id, business_id, waiter_id, public_id, active, created_at;
                 """,
-                (business_id, waiter_id, public_id),
+                (business_id, public_id, waiter_id, business_id),
             )
 
             card = cur.fetchone()
+
+            if not card:
+                conn.rollback()
+                raise ValueError(
+                    "waiter does not belong to this business"
+                )
+
             conn.commit()
 
             return card
 
     finally:
         conn.close()
-
 
 def get_cards_by_business(business_id):
     conn = get_connection()

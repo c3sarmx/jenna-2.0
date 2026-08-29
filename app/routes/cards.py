@@ -26,10 +26,15 @@ def create_card_route(business_id):
             "error": "waiter_id is required"
         }), 400
 
-    card = create_card(
-        business_id=business_id,
-        waiter_id=waiter_id,
-    )
+    try:
+        card = create_card(
+            business_id=business_id,
+            waiter_id=waiter_id,
+        )
+    except ValueError as error:
+        return jsonify({
+            "error": str(error)
+        }), 400
 
     return jsonify({
         "id": card[0],
