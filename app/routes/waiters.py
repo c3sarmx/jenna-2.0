@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify, request
 
+from app.auth.decorators import require_business_access
 from app.services.waiters import create_waiter, get_waiters_by_business
 
 
@@ -7,6 +8,7 @@ waiters_bp = Blueprint("waiters", __name__)
 
 
 @waiters_bp.post("/businesses/<int:business_id>/waiters")
+@require_business_access
 def create_waiter_route(business_id):
     data = request.get_json()
 
@@ -32,6 +34,7 @@ def create_waiter_route(business_id):
 
 
 @waiters_bp.get("/businesses/<int:business_id>/waiters")
+@require_business_access
 def get_waiters_route(business_id):
     waiters = get_waiters_by_business(business_id)
 

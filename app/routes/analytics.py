@@ -1,26 +1,15 @@
-from flask import Blueprint, jsonify, request, session
+from flask import Blueprint, jsonify, request
 
+from app.auth.decorators import require_business_access
 from app.services.analytics import get_business_analytics
-from app.services.business_users import user_has_business_access
 
 
 analytics_bp = Blueprint("analytics", __name__)
 
 
 @analytics_bp.get("/businesses/<int:business_id>/analytics")
+@require_business_access
 def get_business_analytics_route(business_id):
-    user_id = session.get("user_id")
-
-    if not user_id:
-        return jsonify({
-            "error": "authentication required"
-        }), 401
-
-    if not user_has_business_access(user_id, business_id):
-        return jsonify({
-            "error": "business access denied"
-        }), 403
-
     date_from = request.args.get("from")
     date_to = request.args.get("to")
 

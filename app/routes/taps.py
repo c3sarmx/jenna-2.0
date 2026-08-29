@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify, request
 
+from app.auth.decorators import require_business_access
 from app.services.taps import create_tap, get_taps_by_business
 
 
@@ -30,6 +31,7 @@ def create_tap_route(business_id):
 
 
 @taps_bp.get("/businesses/<int:business_id>/taps")
+@require_business_access
 def get_taps_route(business_id):
     taps = get_taps_by_business(business_id)
 

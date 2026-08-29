@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify, redirect, request
 
+from app.auth.decorators import require_business_access
 from app.services.taps import create_tap
 
 from app.services.cards import (
@@ -14,6 +15,7 @@ cards_bp = Blueprint("cards", __name__)
 
 
 @cards_bp.post("/businesses/<int:business_id>/cards")
+@require_business_access
 def create_card_route(business_id):
     data = request.get_json()
 
@@ -40,6 +42,7 @@ def create_card_route(business_id):
 
 
 @cards_bp.get("/businesses/<int:business_id>/cards")
+@require_business_access
 def get_cards_route(business_id):
     cards = get_cards_by_business(business_id)
 
@@ -87,7 +90,9 @@ def resolve_card_route(public_id):
 
     return redirect(card[3])
 
+
 @cards_bp.patch("/businesses/<int:business_id>/cards/<int:card_id>")
+@require_business_access
 def update_card_status_route(business_id, card_id):
     data = request.get_json()
 
