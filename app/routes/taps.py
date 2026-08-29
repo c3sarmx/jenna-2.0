@@ -8,6 +8,7 @@ taps_bp = Blueprint("taps", __name__)
 
 
 @taps_bp.post("/businesses/<int:business_id>/taps")
+@require_business_access
 def create_tap_route(business_id):
     data = request.get_json()
 
