@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify, request
 
+from app.auth.decorators import require_business_access
 from app.services.review_snapshots import (
     create_review_snapshot,
     get_review_snapshots_by_business,
@@ -10,6 +11,7 @@ review_snapshots_bp = Blueprint("review_snapshots", __name__)
 
 
 @review_snapshots_bp.post("/businesses/<int:business_id>/review-snapshots")
+@require_business_access
 def create_review_snapshot_route(business_id):
     data = request.get_json()
 
@@ -41,6 +43,7 @@ def create_review_snapshot_route(business_id):
 
 
 @review_snapshots_bp.get("/businesses/<int:business_id>/review-snapshots")
+@require_business_access
 def get_review_snapshots_route(business_id):
     snapshots = get_review_snapshots_by_business(business_id)
 
