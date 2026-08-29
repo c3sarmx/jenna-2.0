@@ -19,6 +19,7 @@ def create_app():
     from app.routes.taps import taps_bp
     from app.routes.cards import cards_bp
     from app.routes.auth import auth_bp
+    from app.routes.business_users import business_users_bp
 
     app.register_blueprint(health_bp)
     app.register_blueprint(businesses_bp)
@@ -28,5 +29,6 @@ def create_app():
     app.register_blueprint(taps_bp)
     app.register_blueprint(cards_bp)
     app.register_blueprint(auth_bp)
+    app.register_blueprint(business_users_bp)
 
     return app

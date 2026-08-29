@@ -73,3 +73,57 @@ def user_has_business_access(user_id, business_id):
 
     finally:
         conn.close()
+
+
+def get_user_business_role(user_id, business_id):
+    conn = get_connection()
+
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT role
+                FROM business_users
+                WHERE user_id = %s
+                  AND business_id = %s;
+                """,
+                (user_id, business_id),
+            )
+
+            business_user = cur.fetchone()
+
+            if not business_user:
+                return None
+
+            return business_user[0]
+
+    finally:
+        conn.close()
+
+
+def get_business_users(business_id):
+    conn = get_connection()
+
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT
+                    u.id,
+                    u.email,
+                    u.active,
+                    bu.role,
+                    bu.created_at
+                FROM business_users bu
+                JOIN users u
+                    ON u.id = bu.user_id
+                WHERE bu.business_id = %s
+                ORDER BY bu.id;
+                """,
+                (business_id,),
+            )
+
+            return cur.fetchall()
+
+    finally:
+        conn.close()
