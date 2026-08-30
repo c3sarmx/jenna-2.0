@@ -56,6 +56,7 @@ def test_business_access_allowed():
             (0, 0, 0, 0, 0, 0),
             [],
             [],
+            [],
         ),
     ):
         response = client.get("/businesses/4/analytics")

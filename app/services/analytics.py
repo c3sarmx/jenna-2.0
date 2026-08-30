@@ -152,7 +152,28 @@ def get_business_analytics(business_id, date_from=None, date_to=None):
 
             taps_by_card = cur.fetchall()
 
-            return summary, taps_by_waiter, taps_by_card
+            cur.execute(
+                """
+                SELECT
+                    dates.day::date,
+                    COUNT(t.id) AS total_taps
+                FROM generate_series(
+                    CURRENT_DATE - INTERVAL '29 days',
+                    CURRENT_DATE,
+                    INTERVAL '1 day'
+                ) AS dates(day)
+                LEFT JOIN taps t
+                    ON t.business_id = %s
+                    AND t.created_at::date = dates.day::date
+                GROUP BY dates.day
+                ORDER BY dates.day;
+                """,
+                (business_id,),
+            )
+
+            daily_taps = cur.fetchall()
+
+            return summary, taps_by_waiter, taps_by_card, daily_taps
 
     finally:
         conn.close()

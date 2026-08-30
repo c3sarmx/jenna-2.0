@@ -13,7 +13,7 @@ def get_business_analytics_route(business_id):
     date_from = request.args.get("from")
     date_to = request.args.get("to")
 
-    summary, taps_by_waiter, taps_by_card = get_business_analytics(
+    summary, taps_by_waiter, taps_by_card, daily_taps = get_business_analytics(
         business_id=business_id,
         date_from=date_from,
         date_to=date_to,
@@ -29,6 +29,13 @@ def get_business_analytics_route(business_id):
             "qr": summary[4],
             "web": summary[5],
         },
+        "daily_taps": [
+            {
+                "date": day.isoformat(),
+                "total_taps": total_taps,
+            }
+            for day, total_taps in daily_taps
+        ],
         "taps_by_waiter": [
             {
                 "waiter_id": waiter[0],

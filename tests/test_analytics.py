@@ -1,3 +1,4 @@
+from datetime import date
 from unittest.mock import patch
 
 from app import create_app
@@ -57,6 +58,11 @@ def test_analytics_success():
             summary,
             taps_by_waiter,
             taps_by_card,
+            [
+                (date(2026, 8, 27), 3),
+                (date(2026, 8, 28), 5),
+                (date(2026, 8, 29), 7),
+            ],
         ),
     ):
         response = client.get("/businesses/4/analytics")
@@ -75,6 +81,21 @@ def test_analytics_success():
         "qr": 12,
         "web": 3,
     }
+
+    assert body["daily_taps"] == [
+        {
+            "date": "2026-08-27",
+            "total_taps": 3,
+        },
+        {
+            "date": "2026-08-28",
+            "total_taps": 5,
+        },
+        {
+            "date": "2026-08-29",
+            "total_taps": 7,
+        },
+    ]
 
     assert body["taps_by_waiter"][0] == {
         "waiter_id": 2,
@@ -102,7 +123,7 @@ def test_analytics_passes_date_filters():
         return_value=True,
     ), patch(
         "app.routes.analytics.get_business_analytics",
-        return_value=(summary, [], []),
+        return_value=(summary, [], [], []),
     ) as analytics_mock:
         response = client.get(
             "/businesses/4/analytics"

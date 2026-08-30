@@ -70,9 +70,22 @@ def test_tap_snapshot_analytics_flow(
         total_reviews=25,
     )
 
-    summary, taps_by_waiter, taps_by_card = get_business_analytics(
+    summary, taps_by_waiter, taps_by_card, daily_taps = get_business_analytics(
         business_id=business_id,
     )
+
+    assert len(daily_taps) == 30
+
+    daily_by_date = {
+        day: total_taps
+        for day, total_taps in daily_taps
+    }
+
+    assert daily_by_date[date.today()] == 4
+
+    for day, total_taps in daily_taps:
+        if day != date.today():
+            assert total_taps == 0
 
     assert summary[0] == 4
     assert summary[1] == 1
