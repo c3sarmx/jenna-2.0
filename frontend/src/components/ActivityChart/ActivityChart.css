@@ -1,0 +1,56 @@
+.activity-chart {
+  position: relative;
+  height: 15rem;
+  margin-top: 2.25rem;
+  padding-bottom: 2rem;
+}
+
+.chart-grid {
+  position: absolute;
+  inset: 0 0 2rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.chart-grid span {
+  width: 100%;
+  height: 1px;
+  background: var(--color-line);
+  opacity: 0.65;
+}
+
+.chart-svg {
+  position: absolute;
+  inset: 0 0 2rem;
+  width: 100%;
+  height: calc(100% - 2rem);
+  overflow: visible;
+}
+
+.chart-area {
+  fill: var(--color-accent);
+  opacity: 0.07;
+}
+
+.chart-path {
+  fill: none;
+  stroke: var(--color-accent);
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+
+.chart-point {
+  fill: var(--color-accent);
+}
+
+.chart-axis {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  justify-content: space-between;
+  color: var(--color-ink-muted);
+  font-size: var(--text-xs);
+}
