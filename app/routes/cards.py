@@ -74,7 +74,7 @@ def resolve_card_route(public_id):
             "error": "card not found"
         }), 404
 
-    if not card[7]:
+    if not card[7] or not card[9]:
         return jsonify({
             "error": "card inactive"
         }), 410

@@ -87,7 +87,8 @@ def get_card_by_public_id(public_id):
                     w.name,
                     c.public_id,
                     c.active,
-                    c.created_at
+                    c.created_at,
+                    w.active
                 FROM cards c
                 JOIN businesses b
                     ON b.id = c.business_id

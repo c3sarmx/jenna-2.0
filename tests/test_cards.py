@@ -162,6 +162,7 @@ def test_resolve_card_invalid_source():
         "public-card-123",
         True,
         datetime.now(),
+        True,
     )
 
     with patch(
@@ -191,6 +192,7 @@ def test_resolve_card_success():
         "public-card-123",
         True,
         datetime.now(),
+        True,
     )
 
     with patch(
@@ -266,3 +268,37 @@ def test_update_card_status_not_found():
     assert response.get_json() == {
         "error": "card not found"
     }
+
+
+def test_resolve_card_inactive_waiter():
+    client = make_app().test_client()
+
+    card = (
+        10,
+        4,
+        "Business",
+        "https://example.com/review",
+        2,
+        "Mesero Test",
+        "public-card-123",
+        True,
+        datetime.now(),
+        False,
+    )
+
+    with patch(
+        "app.routes.cards.get_card_by_public_id",
+        return_value=card,
+    ), patch(
+        "app.routes.cards.create_tap",
+    ) as create_tap_mock:
+        response = client.get(
+            "/r/public-card-123?source=nfc"
+        )
+
+    assert response.status_code == 410
+    assert response.get_json() == {
+        "error": "card inactive"
+    }
+
+    create_tap_mock.assert_not_called()
