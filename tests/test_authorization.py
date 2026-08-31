@@ -62,3 +62,27 @@ def test_business_access_allowed():
         response = client.get("/businesses/4/analytics")
 
     assert response.status_code == 200
+
+
+def test_business_access_denied_for_unassigned_business():
+    app = create_app()
+    app.config["TESTING"] = True
+
+    client = app.test_client()
+
+    with client.session_transaction() as session:
+        session["user_id"] = 2
+
+    routes = [
+        "/businesses/5/analytics",
+        "/businesses/5/cards",
+        "/businesses/5/waiters",
+    ]
+
+    for route in routes:
+        response = client.get(route)
+
+        assert response.status_code == 403
+        assert response.get_json() == {
+            "error": "business access denied"
+        }
