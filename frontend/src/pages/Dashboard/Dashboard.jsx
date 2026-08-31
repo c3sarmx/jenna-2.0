@@ -63,9 +63,6 @@ function Dashboard({ business }) {
     );
   }
 
-  console.log("ANALYTICS:", analytics);
-  console.log("DAILY TAPS:", analytics?.daily_taps);
-
   const activeCards = cards.filter((card) => card.active).length;
   const activeWaiters = waiters.filter((waiter) => waiter.active).length;
 
