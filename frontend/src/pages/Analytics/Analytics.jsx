@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import ActivityChart from "../../components/ActivityChart/ActivityChart";
+import ErrorState from "../../components/ErrorState/ErrorState";
 import { getAnalytics } from "../../services/api";
 import "./Analytics.css";
 
@@ -8,6 +9,7 @@ function Analytics({ business }) {
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [retryKey, setRetryKey] = useState(0);
 
   useEffect(() => {
     async function loadAnalytics() {
@@ -19,14 +21,14 @@ function Analytics({ business }) {
 
         setAnalytics(data);
       } catch (requestError) {
-        setError(requestError.message);
+        setError(requestError);
       } finally {
         setLoading(false);
       }
     }
 
     loadAnalytics();
-  }, [business.id]);
+  }, [business.id, retryKey]);
 
   if (loading) {
     return (
@@ -39,8 +41,10 @@ function Analytics({ business }) {
   if (error) {
     return (
       <div className="analytics analytics-state">
-        <p>No fue posible cargar la analítica.</p>
-        <span>{error}</span>
+        <ErrorState
+          error={error}
+          onRetry={() => setRetryKey((value) => value + 1)}
+        />
       </div>
     );
   }
