@@ -1,0 +1,72 @@
+.error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  max-width: 34rem;
+  padding: 4rem;
+}
+
+.error-state-mark {
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  margin-bottom: 1.5rem;
+  place-items: center;
+  border: 1px solid var(--color-line);
+  border-radius: 50%;
+  color: var(--color-accent);
+  font-weight: 700;
+}
+
+.error-state-kicker {
+  margin: 0 0 0.5rem;
+  color: var(--color-accent);
+  font-size: var(--text-xs);
+  font-weight: 650;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.error-state h2 {
+  margin: 0;
+  color: var(--color-ink);
+  font-size: 1.75rem;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+}
+
+.error-state > p:not(.error-state-kicker) {
+  max-width: 30rem;
+  margin: 0.75rem 0 0;
+  color: var(--color-ink-muted);
+  line-height: 1.6;
+}
+
+.error-state-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+  padding: 0.65rem 0.9rem;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition:
+    background var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out);
+}
+
+.error-state-button:hover {
+  border-color: var(--color-ink-muted);
+  background: var(--color-surface-raised);
+}
+
+@media (max-width: 700px) {
+  .error-state {
+    padding: 3rem var(--space-5);
+  }
+}
