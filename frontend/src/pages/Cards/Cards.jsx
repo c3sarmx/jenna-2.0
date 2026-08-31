@@ -6,6 +6,7 @@ import {
   getWaiters,
   updateCardStatus,
 } from "../../services/api";
+import ErrorState from "../../components/ErrorState/ErrorState";
 import "./Cards.css";
 
 function Cards({ business }) {
@@ -14,32 +15,15 @@ function Cards({ business }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
+  const [retryKey, setRetryKey] = useState(0);
+  const [actionError, setActionError] = useState(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [selectedWaiter, setSelectedWaiter] = useState("");
-
-  async function loadCards() {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const [cardsData, waitersData] = await Promise.all([
-        getCards(business.id),
-        getWaiters(business.id),
-      ]);
-
-      setCards(cardsData);
-      setWaiters(waitersData);
-    } catch (requestError) {
-      setError(requestError.message);
-    } finally {
-      setLoading(false);
-    }
-  }
 
   useEffect(() => {
     let cancelled = false;
 
-    async function loadInitialCards() {
+    async function loadCards() {
       try {
         setLoading(true);
         setError(null);
@@ -55,7 +39,7 @@ function Cards({ business }) {
         }
       } catch (requestError) {
         if (!cancelled) {
-          setError(requestError.message);
+          setError(requestError);
         }
       } finally {
         if (!cancelled) {
@@ -64,12 +48,12 @@ function Cards({ business }) {
       }
     }
 
-    loadInitialCards();
+    loadCards();
 
     return () => {
       cancelled = true;
     };
-  }, [business.id]);
+  }, [business.id, retryKey]);
 
   async function handleCreateCard(event) {
     event.preventDefault();
@@ -80,7 +64,7 @@ function Cards({ business }) {
 
     try {
       setSaving(true);
-      setError(null);
+      setActionError(null);
 
       await createCard(
         business.id,
@@ -90,9 +74,9 @@ function Cards({ business }) {
       setSelectedWaiter("");
       setShowCreateForm(false);
 
-      await loadCards();
+      setRetryKey((value) => value + 1);
     } catch (requestError) {
-      setError(requestError.message);
+      setActionError(requestError);
     } finally {
       setSaving(false);
     }
@@ -101,7 +85,7 @@ function Cards({ business }) {
   async function handleToggleCard(card) {
     try {
       setSaving(true);
-      setError(null);
+      setActionError(null);
 
       const updatedCard = await updateCardStatus(
         business.id,
@@ -120,7 +104,7 @@ function Cards({ business }) {
         )
       );
     } catch (requestError) {
-      setError(requestError.message);
+      setActionError(requestError);
     } finally {
       setSaving(false);
     }
@@ -130,6 +114,17 @@ function Cards({ business }) {
     return (
       <div className="cards-page cards-state">
         <p>Cargando tarjetas...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="cards-page cards-state">
+        <ErrorState
+          error={error}
+          onRetry={() => setRetryKey((value) => value + 1)}
+        />
       </div>
     );
   }
@@ -178,9 +173,9 @@ function Cards({ business }) {
         </div>
       </motion.header>
 
-      {error && (
+      {actionError && (
         <div className="cards-error">
-          {error}
+          {actionError.message}
         </div>
       )}
 
