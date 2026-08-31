@@ -4,6 +4,7 @@ import {
   createWaiter,
   getWaiters,
 } from "../../services/api";
+import ErrorState from "../../components/ErrorState/ErrorState";
 import "./Waiters.css";
 
 function Waiters({ business }) {
@@ -11,48 +12,41 @@ function Waiters({ business }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
+  const [retryKey, setRetryKey] = useState(0);
+  const [actionError, setActionError] = useState(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [name, setName] = useState("");
 
-  async function loadWaiters() {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const data = await getWaiters(business.id);
-      setWaiters(data);
-    } catch (requestError) {
-      setError(requestError.message);
-    } finally {
-      setLoading(false);
-    }
-  }
-
   useEffect(() => {
-  let cancelled = false;
+    let cancelled = false;
 
-  async function fetchWaiters() {
-    try {
-      const data = await getWaiters(business.id);
+    async function loadWaiters() {
+      try {
+        setLoading(true);
+        setError(null);
 
-      if (!cancelled) {
-        setWaiters(data);
-        setLoading(false);
-      }
-    } catch (requestError) {
-      if (!cancelled) {
-        setError(requestError.message);
-        setLoading(false);
+        const data = await getWaiters(business.id);
+
+        if (!cancelled) {
+          setWaiters(data);
+        }
+      } catch (requestError) {
+        if (!cancelled) {
+          setError(requestError);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     }
-  }
 
-  fetchWaiters();
+    loadWaiters();
 
-  return () => {
-    cancelled = true;
-  };
-}, [business.id]);
+    return () => {
+      cancelled = true;
+    };
+  }, [business.id, retryKey]);
 
   async function handleCreateWaiter(event) {
     event.preventDefault();
@@ -65,16 +59,16 @@ function Waiters({ business }) {
 
     try {
       setSaving(true);
-      setError(null);
+      setActionError(null);
 
       await createWaiter(business.id, trimmedName);
 
       setName("");
       setShowCreateForm(false);
 
-      await loadWaiters();
+      setRetryKey((value) => value + 1);
     } catch (requestError) {
-      setError(requestError.message);
+      setActionError(requestError);
     } finally {
       setSaving(false);
     }
@@ -84,6 +78,17 @@ function Waiters({ business }) {
     return (
       <div className="waiters-page waiters-state">
         <p>Cargando meseros...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="waiters-page waiters-state">
+        <ErrorState
+          error={error}
+          onRetry={() => setRetryKey((value) => value + 1)}
+        />
       </div>
     );
   }
@@ -130,9 +135,9 @@ function Waiters({ business }) {
         </div>
       </motion.header>
 
-      {error && (
+      {actionError && (
         <div className="waiters-error">
-          {error}
+          {actionError.message}
         </div>
       )}
 
