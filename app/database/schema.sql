@@ -38,7 +38,10 @@ CREATE TABLE waiters (
     business_id BIGINT NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
     name VARCHAR(100) NOT NULL,
     active BOOLEAN NOT NULL DEFAULT TRUE,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT waiters_id_business_unique
+        UNIQUE (id, business_id)
 );
 
 CREATE TABLE cards (
@@ -47,7 +50,15 @@ CREATE TABLE cards (
     waiter_id BIGINT NOT NULL REFERENCES waiters(id) ON DELETE RESTRICT,
     public_id VARCHAR(64) NOT NULL UNIQUE,
     active BOOLEAN NOT NULL DEFAULT TRUE,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT cards_id_business_unique
+        UNIQUE (id, business_id),
+
+    CONSTRAINT cards_waiter_business_fkey
+        FOREIGN KEY (waiter_id, business_id)
+        REFERENCES waiters(id, business_id)
+        ON DELETE RESTRICT
 );
 
 CREATE TABLE taps (
@@ -59,7 +70,15 @@ CREATE TABLE taps (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
     CONSTRAINT taps_source_check
-        CHECK (source IN ('nfc', 'qr', 'web'))
+        CHECK (source IN ('nfc', 'qr', 'web')),
+
+    CONSTRAINT taps_waiter_business_fkey
+        FOREIGN KEY (waiter_id, business_id)
+        REFERENCES waiters(id, business_id),
+
+    CONSTRAINT taps_card_business_fkey
+        FOREIGN KEY (card_id, business_id)
+        REFERENCES cards(id, business_id)
 );
 
 CREATE TABLE review_snapshots (
