@@ -9,7 +9,17 @@ load_dotenv()
 def create_app():
     app = Flask(__name__)
 
-    app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY")
+    secret_key = os.environ.get("SECRET_KEY")
+
+    if not secret_key:
+        raise RuntimeError("SECRET_KEY environment variable is required")
+
+    app.config["SECRET_KEY"] = secret_key
+    app.config["SESSION_COOKIE_HTTPONLY"] = True
+    app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+    app.config["SESSION_COOKIE_SECURE"] = (
+        os.environ.get("SESSION_COOKIE_SECURE", "false").lower() == "true"
+    )
 
     from app.routes.health import health_bp
     from app.routes.businesses import businesses_bp
