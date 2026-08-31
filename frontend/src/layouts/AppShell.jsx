@@ -11,7 +11,7 @@ import Analytics from "../pages/Analytics/Analytics";
 import Cards from "../pages/Cards/Cards";
 import Waiters from "../pages/Waiters/Waiters";
 import Login from "../pages/Login/Login";
-import { getBusinesses, getMe } from "../services/api";
+import { getBusinesses, getMe, logout } from "../services/api";
 import "./AppShell.css";
 
 const navigation = [
@@ -26,7 +26,13 @@ function AppShell() {
   const [business, setBusiness] = useState(null);
   const [businesses, setBusinesses] = useState([]);
   const [businessSwitcherOpen, setBusinessSwitcherOpen] = useState(false);
-  const [activeView, setActiveView] = useState("dashboard");
+  const [activeView, setActiveView] = useState(() => {
+    const savedView = localStorage.getItem("dukkah_active_view");
+
+    return navigation.some((item) => item.id === savedView)
+      ? savedView
+      : "dashboard";
+  });
   const [checkingSession, setCheckingSession] = useState(true);
 
   useEffect(() => {
@@ -57,8 +63,41 @@ function AppShell() {
     restoreSession();
   }, []);
 
-  function handleLogin(currentUser) {
+  async function handleLogin(currentUser) {
+    const businessesData = await getBusinesses();
+
+    setBusinesses(businessesData);
+
+    const savedBusinessId = localStorage.getItem(
+      "dukkah_active_business_id"
+    );
+
+    const savedBusiness = businessesData.find(
+      (item) => item.id === Number(savedBusinessId)
+    );
+
+    setBusiness(savedBusiness ?? businessesData[0] ?? null);
     setUser(currentUser);
+  }
+
+  async function handleLogout() {
+    try {
+      await logout();
+    } catch {
+      // Aunque el servidor falle, limpiamos la sesión local.
+    } finally {
+      localStorage.removeItem("dukkah_active_business_id");
+      setUser(null);
+      setBusiness(null);
+      setBusinesses([]);
+      setActiveView("dashboard");
+      localStorage.removeItem("dukkah_active_view");
+    }
+  }
+
+  function handleViewChange(viewId) {
+    setActiveView(viewId);
+    localStorage.setItem("dukkah_active_view", viewId);
   }
 
   function handleBusinessChange(businessId) {
@@ -128,7 +167,7 @@ function AppShell() {
               }`}
               key={id}
               type="button"
-              onClick={() => setActiveView(id)}
+              onClick={() => handleViewChange(id)}
             >
               <Icon size={17} strokeWidth={1.8} />
               <span>{label}</span>
@@ -208,7 +247,16 @@ function AppShell() {
               {business?.name}
             </span>
           )}
-          <span className="user-label">{user.email}</span>
+          <div className="user-menu">
+            <span className="user-label">{user.email}</span>
+            <button
+              className="logout-button"
+              type="button"
+              onClick={handleLogout}
+            >
+              Cerrar sesión
+            </button>
+          </div>
         </header>  
         {renderActiveView()}
       </main>

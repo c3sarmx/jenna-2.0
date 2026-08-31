@@ -16,7 +16,7 @@ function Login({ onLogin }) {
 
     try {
       const user = await login(email, password);
-      onLogin(user);
+      await onLogin(user);
     } catch {
       setError("El correo o la contraseña no son correctos.");
     } finally {
