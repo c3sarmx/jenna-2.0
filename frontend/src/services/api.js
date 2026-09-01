@@ -87,3 +87,12 @@ export async function updateCardStatus(businessId, cardId, active) {
     }),
   });
 }
+
+export async function updateWaiterStatus(businessId, waiterId, active) {
+  return request(`/businesses/${businessId}/waiters/${waiterId}`, {
+    method: "PATCH",
+    body: JSON.stringify({
+      active,
+    }),
+  });
+}

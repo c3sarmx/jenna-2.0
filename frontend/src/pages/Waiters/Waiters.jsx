@@ -3,6 +3,7 @@ import { motion } from "motion/react";
 import {
   createWaiter,
   getWaiters,
+  updateWaiterStatus,
 } from "../../services/api";
 import ErrorState from "../../components/ErrorState/ErrorState";
 import "./Waiters.css";
@@ -47,6 +48,34 @@ function Waiters({ business }) {
       cancelled = true;
     };
   }, [business.id, retryKey]);
+
+  async function handleToggleWaiter(waiter) {
+    try {
+      setSaving(true);
+      setActionError(null);
+
+      const updatedWaiter = await updateWaiterStatus(
+        business.id,
+        waiter.id,
+        !waiter.active
+      );
+
+      setWaiters((currentWaiters) =>
+        currentWaiters.map((currentWaiter) =>
+          currentWaiter.id === updatedWaiter.id
+            ? {
+                ...currentWaiter,
+                active: updatedWaiter.active,
+              }
+            : currentWaiter
+        )
+      );
+    } catch (requestError) {
+      setActionError(requestError);
+    } finally {
+      setSaving(false);
+    }
+  }
 
   async function handleCreateWaiter(event) {
     event.preventDefault();
@@ -235,16 +264,24 @@ function Waiters({ business }) {
                 </span>
               </div>
 
-              <div
+              <button
                 className={`waiter-status ${
                   waiter.active
                     ? "waiter-status-active"
                     : ""
                 }`}
+                type="button"
+                onClick={() => handleToggleWaiter(waiter)}
+                disabled={saving}
+                aria-label={
+                  waiter.active
+                    ? `Desactivar a ${waiter.name}`
+                    : `Activar a ${waiter.name}`
+                }
               >
                 <span />
                 {waiter.active ? "Activo" : "Inactivo"}
-              </div>
+              </button>
             </motion.article>
           ))
         )}
