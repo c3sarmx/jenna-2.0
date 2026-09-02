@@ -1,13 +1,20 @@
 import os
+from pathlib import Path
 
 from dotenv import load_dotenv
-from flask import Flask
+from flask import Flask, send_from_directory
 
 load_dotenv()
 
 
 def create_app():
-    app = Flask(__name__)
+    frontend_dist = Path(__file__).resolve().parent.parent / "frontend" / "dist"
+
+    app = Flask(
+        __name__,
+        static_folder=str(frontend_dist),
+        static_url_path="",
+    )
 
     secret_key = os.environ.get("SECRET_KEY")
 
@@ -31,14 +38,29 @@ def create_app():
     from app.routes.auth import auth_bp
     from app.routes.business_users import business_users_bp
 
-    app.register_blueprint(health_bp)
-    app.register_blueprint(businesses_bp)
-    app.register_blueprint(waiters_bp)
-    app.register_blueprint(review_snapshots_bp)
-    app.register_blueprint(analytics_bp)
-    app.register_blueprint(taps_bp)
-    app.register_blueprint(cards_bp)
-    app.register_blueprint(auth_bp)
-    app.register_blueprint(business_users_bp)
+    api_prefix = "/api"
+
+    app.register_blueprint(health_bp, url_prefix=api_prefix)
+    app.register_blueprint(businesses_bp, url_prefix=api_prefix)
+    app.register_blueprint(waiters_bp, url_prefix=api_prefix)
+    app.register_blueprint(review_snapshots_bp, url_prefix=api_prefix)
+    app.register_blueprint(analytics_bp, url_prefix=api_prefix)
+    app.register_blueprint(taps_bp, url_prefix=api_prefix)
+    app.register_blueprint(cards_bp, url_prefix=api_prefix)
+    app.register_blueprint(auth_bp, url_prefix=api_prefix)
+    app.register_blueprint(business_users_bp, url_prefix=api_prefix)
+
+    @app.get("/")
+    def serve_frontend():
+        return send_from_directory(frontend_dist, "index.html")
+
+    @app.get("/<path:path>")
+    def serve_frontend_path(path):
+        file_path = frontend_dist / path
+
+        if file_path.is_file():
+            return send_from_directory(frontend_dist, path)
+
+        return send_from_directory(frontend_dist, "index.html")
 
     return app
