@@ -19,7 +19,7 @@ def test_create_snapshot_requires_authentication():
     client = make_app().test_client()
 
     response = client.post(
-        "/businesses/4/review-snapshots",
+        "/api/businesses/4/review-snapshots",
         json={
             "snapshot_date": "2026-08-29",
             "total_reviews": 10,
@@ -38,7 +38,7 @@ def test_create_snapshot_requires_date():
         return_value=True,
     ):
         response = client.post(
-            "/businesses/4/review-snapshots",
+            "/api/businesses/4/review-snapshots",
             json={
                 "total_reviews": 10,
             },
@@ -69,7 +69,7 @@ def test_create_snapshot_success():
         return_value=snapshot,
     ):
         response = client.post(
-            "/businesses/4/review-snapshots",
+            "/api/businesses/4/review-snapshots",
             json={
                 "snapshot_date": "2026-08-29",
                 "total_reviews": 10,
@@ -100,7 +100,7 @@ def test_create_snapshot_duplicate():
         ),
     ):
         response = client.post(
-            "/businesses/4/review-snapshots",
+            "/api/businesses/4/review-snapshots",
             json={
                 "snapshot_date": "2026-08-29",
                 "total_reviews": 10,
@@ -119,7 +119,7 @@ def test_get_snapshots_requires_authentication():
     client = make_app().test_client()
 
     response = client.get(
-        "/businesses/4/review-snapshots"
+        "/api/businesses/4/review-snapshots"
     )
 
     assert response.status_code == 401
@@ -152,7 +152,7 @@ def test_get_snapshots_success():
         return_value=snapshots,
     ):
         response = client.get(
-            "/businesses/4/review-snapshots"
+            "/api/businesses/4/review-snapshots"
         )
 
     assert response.status_code == 200

@@ -20,7 +20,7 @@ def test_login_success():
         return_value=user,
     ):
         response = client.post(
-            "/auth/login",
+            "/api/auth/login",
             json={
                 "email": "test-auth@dukkah.local",
                 "password": "TestPassword123!",
@@ -42,7 +42,7 @@ def test_login_invalid_credentials():
         return_value=None,
     ):
         response = client.post(
-            "/auth/login",
+            "/api/auth/login",
             json={
                 "email": "wrong@dukkah.local",
                 "password": "wrong",

@@ -10,7 +10,7 @@ def test_list_business_users_requires_access():
 
     client = app.test_client()
 
-    response = client.get("/businesses/4/users")
+    response = client.get("/api/businesses/4/users")
 
     assert response.status_code == 401
 
@@ -41,7 +41,7 @@ def test_list_business_users_allowed():
         "app.routes.business_users.get_business_users",
         return_value=users,
     ):
-        response = client.get("/businesses/4/users")
+        response = client.get("/api/businesses/4/users")
 
     assert response.status_code == 200
     assert response.get_json()[0]["role"] == "owner"
@@ -61,7 +61,7 @@ def test_admin_cannot_add_business_user():
         return_value="admin",
     ):
         response = client.post(
-            "/businesses/4/users",
+            "/api/businesses/4/users",
             json={
                 "email": "another@dukkah.local",
                 "role": "admin",
@@ -110,7 +110,7 @@ def test_owner_can_add_business_user():
         return_value=business_user,
     ):
         response = client.post(
-            "/businesses/4/users",
+            "/api/businesses/4/users",
             json={
                 "email": "test-admin@dukkah.local",
                 "role": "admin",

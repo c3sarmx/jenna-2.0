@@ -18,7 +18,7 @@ def login_session(client, user_id=1):
 def test_analytics_requires_authentication():
     client = make_app().test_client()
 
-    response = client.get("/businesses/4/analytics")
+    response = client.get("/api/businesses/4/analytics")
 
     assert response.status_code == 401
     assert response.get_json() == {
@@ -65,7 +65,7 @@ def test_analytics_success():
             ],
         ),
     ):
-        response = client.get("/businesses/4/analytics")
+        response = client.get("/api/businesses/4/analytics")
 
     assert response.status_code == 200
 
@@ -126,7 +126,7 @@ def test_analytics_passes_date_filters():
         return_value=(summary, [], [], []),
     ) as analytics_mock:
         response = client.get(
-            "/businesses/4/analytics"
+            "/api/businesses/4/analytics"
             "?from=2026-08-01&to=2026-08-29"
         )
 

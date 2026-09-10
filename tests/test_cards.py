@@ -19,7 +19,7 @@ def test_create_card_requires_authentication():
     client = make_app().test_client()
 
     response = client.post(
-        "/businesses/4/cards",
+        "/api/businesses/4/cards",
         json={"waiter_id": 2},
     )
 
@@ -35,7 +35,7 @@ def test_create_card_requires_waiter_id():
         return_value=True,
     ):
         response = client.post(
-            "/businesses/4/cards",
+            "/api/businesses/4/cards",
             json={},
         )
 
@@ -59,7 +59,7 @@ def test_create_card_rejects_waiter_from_other_business():
         ),
     ):
         response = client.post(
-            "/businesses/4/cards",
+            "/api/businesses/4/cards",
             json={"waiter_id": 99},
         )
 
@@ -92,7 +92,7 @@ def test_create_card_success():
         return_value=card,
     ):
         response = client.post(
-            "/businesses/4/cards",
+            "/api/businesses/4/cards",
             json={"waiter_id": 2},
         )
 
@@ -114,7 +114,7 @@ def test_resolve_card_not_found():
         "app.routes.cards.get_card_by_public_id",
         return_value=None,
     ):
-        response = client.get("/r/not-found")
+        response = client.get("/api/r/not-found")
 
     assert response.status_code == 404
     assert response.get_json() == {
@@ -141,7 +141,7 @@ def test_resolve_inactive_card():
         "app.routes.cards.get_card_by_public_id",
         return_value=card,
     ):
-        response = client.get("/r/public-card-123")
+        response = client.get("/api/r/public-card-123")
 
     assert response.status_code == 410
     assert response.get_json() == {
@@ -170,7 +170,7 @@ def test_resolve_card_invalid_source():
         return_value=card,
     ):
         response = client.get(
-            "/r/public-card-123?source=invalid"
+            "/api/r/public-card-123?source=invalid"
         )
 
     assert response.status_code == 400
@@ -203,7 +203,7 @@ def test_resolve_card_success():
         return_value=(1, 4, 2, "qr", datetime.now(), 10),
     ) as create_tap_mock:
         response = client.get(
-            "/r/public-card-123?source=qr"
+            "/api/r/public-card-123?source=qr"
         )
 
     assert response.status_code == 302
@@ -240,7 +240,7 @@ def test_update_card_status_success():
         return_value=card,
     ):
         response = client.patch(
-            "/businesses/4/cards/10",
+            "/api/businesses/4/cards/10",
             json={"active": False},
         )
 
@@ -260,7 +260,7 @@ def test_update_card_status_not_found():
         return_value=None,
     ):
         response = client.patch(
-            "/businesses/4/cards/999",
+            "/api/businesses/4/cards/999",
             json={"active": False},
         )
 
@@ -293,7 +293,7 @@ def test_resolve_card_inactive_waiter():
         "app.routes.cards.create_tap",
     ) as create_tap_mock:
         response = client.get(
-            "/r/public-card-123?source=nfc"
+            "/api/r/public-card-123?source=nfc"
         )
 
     assert response.status_code == 410

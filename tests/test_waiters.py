@@ -19,7 +19,7 @@ def test_update_waiter_status_requires_authentication():
     client = make_app().test_client()
 
     response = client.patch(
-        "/businesses/4/waiters/2",
+        "/api/businesses/4/waiters/2",
         json={"active": False},
     )
 
@@ -35,7 +35,7 @@ def test_update_waiter_status_requires_active():
         return_value=True,
     ):
         response = client.patch(
-            "/businesses/4/waiters/2",
+            "/api/businesses/4/waiters/2",
             json={},
         )
 
@@ -54,7 +54,7 @@ def test_update_waiter_status_requires_boolean():
         return_value=True,
     ):
         response = client.patch(
-            "/businesses/4/waiters/2",
+            "/api/businesses/4/waiters/2",
             json={"active": "false"},
         )
 
@@ -84,7 +84,7 @@ def test_update_waiter_status_success():
         return_value=waiter,
     ):
         response = client.patch(
-            "/businesses/4/waiters/2",
+            "/api/businesses/4/waiters/2",
             json={"active": False},
         )
 
@@ -104,7 +104,7 @@ def test_update_waiter_status_not_found():
         return_value=None,
     ):
         response = client.patch(
-            "/businesses/4/waiters/999",
+            "/api/businesses/4/waiters/999",
             json={"active": False},
         )
 

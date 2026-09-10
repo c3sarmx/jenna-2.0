@@ -19,7 +19,7 @@ def test_create_tap_requires_authentication():
     client = make_app().test_client()
 
     response = client.post(
-        "/businesses/4/taps",
+        "/api/businesses/4/taps",
         json={
             "waiter_id": 2,
             "source": "nfc",
@@ -55,7 +55,7 @@ def test_create_tap_success():
         return_value=tap,
     ) as create_tap_mock:
         response = client.post(
-            "/businesses/4/taps",
+            "/api/businesses/4/taps",
             json={
                 "waiter_id": 2,
                 "source": "nfc",
@@ -83,7 +83,7 @@ def test_get_taps_requires_authentication():
     client = make_app().test_client()
 
     response = client.get(
-        "/businesses/4/taps"
+        "/api/businesses/4/taps"
     )
 
     assert response.status_code == 401
@@ -123,7 +123,7 @@ def test_get_taps_success():
         return_value=taps,
     ):
         response = client.get(
-            "/businesses/4/taps"
+            "/api/businesses/4/taps"
         )
 
     assert response.status_code == 200
