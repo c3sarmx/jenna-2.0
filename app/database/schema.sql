@@ -117,3 +117,80 @@ CREATE INDEX idx_taps_card
 
 CREATE INDEX idx_review_snapshots_business_date
     ON review_snapshots(business_id, snapshot_date);
+
+CREATE TABLE review_evidence (
+    id BIGSERIAL PRIMARY KEY,
+    business_id BIGINT NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
+    source VARCHAR(30) NOT NULL,
+    external_id VARCHAR(255),
+    reviewer_name VARCHAR(150),
+    rating INTEGER,
+    content TEXT NOT NULL,
+    fingerprint VARCHAR(64),
+    published_at TIMESTAMPTZ,
+    source_url TEXT,
+    imported_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT review_evidence_source_check
+        CHECK (
+            source IN (
+                'manual_import',
+                'google_places'
+            )
+        ),
+
+    CONSTRAINT review_evidence_rating_check
+        CHECK (
+            rating IS NULL
+            OR rating BETWEEN 1 AND 5
+        )
+);
+
+CREATE INDEX idx_review_evidence_business
+    ON review_evidence(business_id);
+
+CREATE INDEX idx_review_evidence_published_at
+    ON review_evidence(published_at);
+
+CREATE INDEX idx_review_evidence_fingerprint
+    ON review_evidence(business_id, fingerprint);
+
+CREATE TABLE review_attributions (
+    id BIGSERIAL PRIMARY KEY,
+    review_evidence_id BIGINT NOT NULL
+        REFERENCES review_evidence(id) ON DELETE CASCADE,
+    waiter_id BIGINT NOT NULL
+        REFERENCES waiters(id) ON DELETE CASCADE,
+    method VARCHAR(30) NOT NULL,
+    confidence VARCHAR(20) NOT NULL,
+    reason TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT review_attributions_method_check
+        CHECK (
+            method IN (
+                'manual',
+                'name_match',
+                'assisted'
+            )
+        ),
+
+    CONSTRAINT review_attributions_confidence_check
+        CHECK (
+            confidence IN (
+                'confirmed',
+                'high',
+                'medium',
+                'low'
+            )
+        ),
+
+    CONSTRAINT review_attributions_unique
+        UNIQUE (review_evidence_id, waiter_id)
+);
+
+CREATE INDEX idx_review_attributions_review
+    ON review_attributions(review_evidence_id);
+
+CREATE INDEX idx_review_attributions_waiter
+    ON review_attributions(waiter_id);

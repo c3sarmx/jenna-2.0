@@ -32,6 +32,8 @@ def create_app():
     from app.routes.businesses import businesses_bp
     from app.routes.waiters import waiters_bp
     from app.routes.review_snapshots import review_snapshots_bp
+    from app.routes.review_evidence import review_evidence_bp
+    from app.routes.review_attributions import review_attributions_bp
     from app.routes.analytics import analytics_bp
     from app.routes.taps import taps_bp
     from app.routes.cards import cards_bp
@@ -44,6 +46,8 @@ def create_app():
     app.register_blueprint(businesses_bp, url_prefix=api_prefix)
     app.register_blueprint(waiters_bp, url_prefix=api_prefix)
     app.register_blueprint(review_snapshots_bp, url_prefix=api_prefix)
+    app.register_blueprint(review_evidence_bp, url_prefix=api_prefix)
+    app.register_blueprint(review_attributions_bp, url_prefix=api_prefix)
     app.register_blueprint(analytics_bp, url_prefix=api_prefix)
     app.register_blueprint(taps_bp, url_prefix=api_prefix)
     app.register_blueprint(cards_bp, url_prefix=api_prefix)
