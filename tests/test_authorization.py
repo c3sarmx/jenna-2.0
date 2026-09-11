@@ -58,6 +58,14 @@ def test_business_access_allowed():
             [],
             [],
         ),
+    ), patch(
+        "app.routes.analytics.get_review_analytics",
+        return_value={
+            "total_review_evidence": 0,
+            "attributed_reviews": 0,
+            "unattributed_reviews": 0,
+            "reviews_by_waiter": [],
+        },
     ):
         response = client.get("/api/businesses/4/analytics")
 

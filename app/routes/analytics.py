@@ -1,7 +1,10 @@
 from flask import Blueprint, jsonify, request
 
 from app.auth.decorators import require_business_access
-from app.services.analytics import get_business_analytics
+from app.services.analytics import (
+    get_business_analytics,
+    get_review_analytics,
+)
 
 
 analytics_bp = Blueprint("analytics", __name__)
@@ -19,11 +22,18 @@ def get_business_analytics_route(business_id):
         date_to=date_to,
     )
 
+    review_analytics = get_review_analytics(
+        business_id=business_id,
+        date_from=date_from,
+        date_to=date_to,
+    )
+
     return jsonify({
         "business_id": business_id,
         "total_taps": summary[0],
         "total_waiters": summary[1],
         "latest_review_count": summary[2],
+        "review_analytics": review_analytics,
         "taps_by_source": {
             "nfc": summary[3],
             "qr": summary[4],

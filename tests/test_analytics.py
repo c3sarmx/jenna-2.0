@@ -64,6 +64,14 @@ def test_analytics_success():
                 (date(2026, 8, 29), 7),
             ],
         ),
+    ), patch(
+        "app.routes.analytics.get_review_analytics",
+        return_value={
+            "total_review_evidence": 0,
+            "attributed_reviews": 0,
+            "unattributed_reviews": 0,
+            "reviews_by_waiter": [],
+        },
     ):
         response = client.get("/api/businesses/4/analytics")
 
@@ -124,7 +132,15 @@ def test_analytics_passes_date_filters():
     ), patch(
         "app.routes.analytics.get_business_analytics",
         return_value=(summary, [], [], []),
-    ) as analytics_mock:
+    ) as analytics_mock, patch(
+        "app.routes.analytics.get_review_analytics",
+        return_value={
+            "total_review_evidence": 0,
+            "attributed_reviews": 0,
+            "unattributed_reviews": 0,
+            "reviews_by_waiter": [],
+        },
+    ):
         response = client.get(
             "/api/businesses/4/analytics"
             "?from=2026-08-01&to=2026-08-29"
@@ -136,4 +152,65 @@ def test_analytics_passes_date_filters():
         business_id=4,
         date_from="2026-08-01",
         date_to="2026-08-29",
+    )
+
+
+def test_analytics_includes_review_analytics():
+    client = make_app().test_client()
+    login_session(client)
+
+    summary = (
+        25,
+        3,
+        120,
+        10,
+        12,
+        3,
+    )
+
+    review_analytics = {
+        "total_review_evidence": 3,
+        "attributed_reviews": 2,
+        "unattributed_reviews": 1,
+        "reviews_by_waiter": [
+            {
+                "waiter_id": 2,
+                "waiter_name": "Mesero Test",
+                "total_reviews": 2,
+            },
+            {
+                "waiter_id": 3,
+                "waiter_name": "Otro Mesero",
+                "total_reviews": 1,
+            },
+        ],
+    }
+
+    with patch(
+        "app.auth.decorators.user_has_business_access",
+        return_value=True,
+    ), patch(
+        "app.routes.analytics.get_business_analytics",
+        return_value=(
+            summary,
+            [],
+            [],
+            [],
+        ),
+    ), patch(
+        "app.routes.analytics.get_review_analytics",
+        return_value=review_analytics,
+    ) as review_analytics_mock:
+        response = client.get("/api/businesses/4/analytics")
+
+    assert response.status_code == 200
+
+    body = response.get_json()
+
+    assert body["review_analytics"] == review_analytics
+
+    review_analytics_mock.assert_called_once_with(
+        business_id=4,
+        date_from=None,
+        date_to=None,
     )
