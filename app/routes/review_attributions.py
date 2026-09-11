@@ -51,14 +51,34 @@ def create_review_attribution_route(business_id):
             "error": "invalid confidence"
         }), 400
 
-    attribution = create_review_attribution(
-        business_id=business_id,
-        review_evidence_id=review_evidence_id,
-        waiter_id=waiter_id,
-        method=method,
-        confidence=confidence,
-        reason=reason,
-    )
+    try:
+        attribution = create_review_attribution(
+            business_id=business_id,
+            review_evidence_id=review_evidence_id,
+            waiter_id=waiter_id,
+            method=method,
+            confidence=confidence,
+            reason=reason,
+        )
+    except ValueError as exc:
+        error = str(exc)
+
+        if error in (
+            "review evidence not found",
+            "review evidence does not belong to business",
+            "waiter not found",
+            "waiter does not belong to business",
+        ):
+            return jsonify({
+                "error": error
+            }), 404
+
+        if error == "review attribution already exists":
+            return jsonify({
+                "error": error
+            }), 409
+
+        raise
 
     return jsonify({
         "id": attribution[0],

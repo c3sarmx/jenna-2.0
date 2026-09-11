@@ -1,4 +1,6 @@
 from datetime import datetime
+
+import pytest
 from unittest.mock import patch
 
 from app import create_app
@@ -272,3 +274,71 @@ def test_get_review_attributions_success():
     assert body[1]["waiter_id"] == 3
     assert body[1]["method"] == "assisted"
     assert body[1]["confidence"] == "confirmed"
+
+
+@pytest.mark.parametrize(
+    ("service_error", "expected_status"),
+    [
+        ("review evidence not found", 404),
+        ("review evidence does not belong to business", 404),
+        ("waiter not found", 404),
+        ("waiter does not belong to business", 404),
+    ],
+)
+def test_create_review_attribution_maps_not_found_errors(
+    service_error,
+    expected_status,
+):
+    client = make_app().test_client()
+    login_session(client)
+
+    with patch(
+        "app.auth.decorators.user_has_business_access",
+        return_value=True,
+    ), patch(
+        "app.routes.review_attributions.create_review_attribution",
+        side_effect=ValueError(service_error),
+    ):
+        response = client.post(
+            "/api/businesses/4/review-attributions",
+            json={
+                "review_evidence_id": 10,
+                "waiter_id": 2,
+                "method": "manual",
+                "confidence": "confirmed",
+            },
+        )
+
+    assert response.status_code == expected_status
+    assert response.get_json() == {
+        "error": service_error
+    }
+
+
+def test_create_review_attribution_maps_duplicate_to_conflict():
+    client = make_app().test_client()
+    login_session(client)
+
+    with patch(
+        "app.auth.decorators.user_has_business_access",
+        return_value=True,
+    ), patch(
+        "app.routes.review_attributions.create_review_attribution",
+        side_effect=ValueError(
+            "review attribution already exists"
+        ),
+    ):
+        response = client.post(
+            "/api/businesses/4/review-attributions",
+            json={
+                "review_evidence_id": 10,
+                "waiter_id": 2,
+                "method": "name_match",
+                "confidence": "high",
+            },
+        )
+
+    assert response.status_code == 409
+    assert response.get_json() == {
+        "error": "review attribution already exists"
+    }
