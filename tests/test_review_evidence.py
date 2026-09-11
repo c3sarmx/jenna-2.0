@@ -198,3 +198,73 @@ def test_get_review_evidence_success():
     assert body[0]["content"] == "Excelente atención de César."
     assert body[0]["fingerprint"] == "b" * 64
     assert body[0]["imported_at"] == "2026-09-10T21:00:00"
+
+
+def test_create_review_evidence_parses_published_at():
+    client = make_app().test_client()
+    login_session(client)
+
+    evidence = (
+        1,
+        4,
+        "manual_import",
+        None,
+        "Juan Pérez",
+        5,
+        "Excelente atención.",
+        datetime(2026, 9, 10, 20, 30),
+        None,
+        "a" * 64,
+        datetime(2026, 9, 10, 21, 0),
+    )
+
+    with patch(
+        "app.auth.decorators.user_has_business_access",
+        return_value=True,
+    ), patch(
+        "app.routes.review_evidence.create_review_evidence",
+        return_value=evidence,
+    ) as create_mock:
+        response = client.post(
+            "/api/businesses/4/review-evidence",
+            json={
+                "source": "manual_import",
+                "reviewer_name": "Juan Pérez",
+                "rating": 5,
+                "content": "Excelente atención.",
+                "published_at": "2026-09-10T20:30:00-06:00",
+            },
+        )
+
+    assert response.status_code == 201
+
+    create_mock.assert_called_once()
+
+    call = create_mock.call_args.kwargs
+
+    assert call["published_at"] == datetime.fromisoformat(
+        "2026-09-10T20:30:00-06:00"
+    )
+
+
+def test_create_review_evidence_rejects_invalid_published_at():
+    client = make_app().test_client()
+    login_session(client)
+
+    with patch(
+        "app.auth.decorators.user_has_business_access",
+        return_value=True,
+    ):
+        response = client.post(
+            "/api/businesses/4/review-evidence",
+            json={
+                "source": "manual_import",
+                "content": "Excelente atención.",
+                "published_at": "not-a-date",
+            },
+        )
+
+    assert response.status_code == 400
+    assert response.get_json() == {
+        "error": "invalid published_at"
+    }

@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from flask import Blueprint, jsonify, request
 
 from app.auth.decorators import require_business_access
@@ -36,6 +38,16 @@ def create_review_evidence_route(business_id):
             "error": "invalid source"
         }), 400
 
+    published_at = data.get("published_at")
+
+    if published_at is not None:
+        try:
+            published_at = datetime.fromisoformat(published_at)
+        except (TypeError, ValueError):
+            return jsonify({
+                "error": "invalid published_at"
+            }), 400
+
     try:
         evidence = create_review_evidence(
             business_id=business_id,
@@ -44,7 +56,7 @@ def create_review_evidence_route(business_id):
             reviewer_name=data.get("reviewer_name"),
             rating=rating,
             external_id=data.get("external_id"),
-            published_at=data.get("published_at"),
+            published_at=published_at,
             source_url=data.get("source_url"),
         )
     except ValueError as exc:
