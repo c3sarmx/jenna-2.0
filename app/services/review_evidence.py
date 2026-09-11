@@ -120,6 +120,79 @@ def create_review_evidence(
         conn.close()
 
 
+def find_duplicate_review_evidence(
+    business_id,
+    external_id=None,
+    fingerprint=None,
+):
+    conn = get_connection()
+
+    try:
+        with conn.cursor() as cur:
+            if external_id is not None:
+                cur.execute(
+                    """
+                    SELECT
+                        id,
+                        business_id,
+                        source,
+                        external_id,
+                        reviewer_name,
+                        rating,
+                        content,
+                        published_at,
+                        source_url,
+                        fingerprint,
+                        imported_at
+                    FROM review_evidence
+                    WHERE business_id = %s
+                      AND external_id = %s
+                    ORDER BY id ASC
+                    LIMIT 1;
+                    """,
+                    (business_id, external_id),
+                )
+
+                evidence = cur.fetchone()
+
+                if evidence:
+                    return "external_id", evidence
+
+            if fingerprint is not None:
+                cur.execute(
+                    """
+                    SELECT
+                        id,
+                        business_id,
+                        source,
+                        external_id,
+                        reviewer_name,
+                        rating,
+                        content,
+                        published_at,
+                        source_url,
+                        fingerprint,
+                        imported_at
+                    FROM review_evidence
+                    WHERE business_id = %s
+                      AND fingerprint = %s
+                    ORDER BY id ASC
+                    LIMIT 1;
+                    """,
+                    (business_id, fingerprint),
+                )
+
+                evidence = cur.fetchone()
+
+                if evidence:
+                    return "fingerprint", evidence
+
+            return None
+
+    finally:
+        conn.close()
+
+
 def get_review_evidence_by_business(business_id):
     conn = get_connection()
 
