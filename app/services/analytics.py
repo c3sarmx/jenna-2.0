@@ -177,3 +177,90 @@ def get_business_analytics(business_id, date_from=None, date_to=None):
 
     finally:
         conn.close()
+
+
+def get_review_analytics(business_id, date_from=None, date_to=None):
+    conn = get_connection()
+
+    try:
+        with conn.cursor() as cur:
+            evidence_conditions = ["re.business_id = %s"]
+            evidence_params = [business_id]
+
+            if date_from:
+                evidence_conditions.append(
+                    "re.published_at::date >= %s"
+                )
+                evidence_params.append(date_from)
+
+            if date_to:
+                evidence_conditions.append(
+                    "re.published_at::date <= %s"
+                )
+                evidence_params.append(date_to)
+
+            evidence_where = " AND ".join(evidence_conditions)
+
+            cur.execute(
+                f"""
+                SELECT
+                    COUNT(*) AS total_review_evidence,
+
+                    COUNT(*) FILTER (
+                        WHERE EXISTS (
+                            SELECT 1
+                            FROM review_attributions ra
+                            WHERE ra.review_evidence_id = re.id
+                        )
+                    ) AS attributed_reviews
+
+                FROM review_evidence re
+                WHERE {evidence_where};
+                """,
+                evidence_params,
+            )
+
+            summary = cur.fetchone()
+
+            cur.execute(
+                f"""
+                SELECT
+                    w.id,
+                    w.name,
+                    COUNT(DISTINCT ra.review_evidence_id)
+                        AS total_reviews
+                FROM review_attributions ra
+                INNER JOIN review_evidence re
+                    ON re.id = ra.review_evidence_id
+                INNER JOIN waiters w
+                    ON w.id = ra.waiter_id
+                WHERE {evidence_where}
+                GROUP BY w.id, w.name
+                ORDER BY total_reviews DESC, w.id;
+                """,
+                evidence_params,
+            )
+
+            reviews_by_waiter = cur.fetchall()
+
+            total_review_evidence = summary[0]
+            attributed_reviews = summary[1]
+
+            return {
+                "total_review_evidence": total_review_evidence,
+                "attributed_reviews": attributed_reviews,
+                "unattributed_reviews": (
+                    total_review_evidence - attributed_reviews
+                ),
+                "reviews_by_waiter": [
+                    {
+                        "waiter_id": waiter[0],
+                        "waiter_name": waiter[1],
+                        "total_reviews": waiter[2],
+                    }
+                    for waiter in reviews_by_waiter
+                ],
+            }
+
+    finally:
+        conn.close()
