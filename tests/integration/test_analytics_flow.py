@@ -211,3 +211,177 @@ def test_review_analytics_flow(
             "total_reviews": 1,
         },
     ]
+
+
+def test_review_analytics_respects_published_date_filters(
+    test_database_url,
+    monkeypatch,
+    clean_database,
+):
+    monkeypatch.setenv("DATABASE_URL", test_database_url)
+
+    from datetime import datetime, timezone
+
+    from app.services.analytics import get_review_analytics
+    from app.services.businesses import create_business
+    from app.services.review_attributions import (
+        create_review_attribution,
+    )
+    from app.services.review_evidence import create_review_evidence
+    from app.services.waiters import create_waiter
+
+    business = create_business(
+        name="Review Date Analytics Café",
+        google_review_url="https://example.com/review",
+    )
+
+    business_id = business[0]
+
+    waiter = create_waiter(
+        business_id=business_id,
+        name="César",
+    )
+
+    review_inside = create_review_evidence(
+        business_id=business_id,
+        source="manual_import",
+        reviewer_name="Cliente Dentro",
+        rating=5,
+        content="Excelente atención.",
+        published_at=datetime(
+            2026, 8, 15, 12, 0, tzinfo=timezone.utc
+        ),
+    )
+
+    review_outside = create_review_evidence(
+        business_id=business_id,
+        source="manual_import",
+        reviewer_name="Cliente Fuera",
+        rating=5,
+        content="Muy buen servicio.",
+        published_at=datetime(
+            2026, 9, 5, 12, 0, tzinfo=timezone.utc
+        ),
+    )
+
+    create_review_attribution(
+        business_id=business_id,
+        review_evidence_id=review_inside[0],
+        waiter_id=waiter[0],
+        method="name_match",
+        confidence="high",
+        reason="La reseña menciona explícitamente a César.",
+    )
+
+    create_review_attribution(
+        business_id=business_id,
+        review_evidence_id=review_outside[0],
+        waiter_id=waiter[0],
+        method="name_match",
+        confidence="high",
+        reason="La reseña menciona explícitamente a César.",
+    )
+
+    analytics = get_review_analytics(
+        business_id=business_id,
+        date_from="2026-08-01",
+        date_to="2026-08-31",
+    )
+
+    assert analytics["total_review_evidence"] == 1
+    assert analytics["attributed_reviews"] == 1
+    assert analytics["unattributed_reviews"] == 0
+
+    assert analytics["reviews_by_waiter"] == [
+        {
+            "waiter_id": waiter[0],
+            "waiter_name": "César",
+            "total_reviews": 1,
+        },
+    ]
+
+
+def test_review_analytics_isolates_businesses(
+    test_database_url,
+    monkeypatch,
+    clean_database,
+):
+    monkeypatch.setenv("DATABASE_URL", test_database_url)
+
+    from app.services.analytics import get_review_analytics
+    from app.services.businesses import create_business
+    from app.services.review_attributions import (
+        create_review_attribution,
+    )
+    from app.services.review_evidence import create_review_evidence
+    from app.services.waiters import create_waiter
+
+    business_a = create_business(
+        name="Business A",
+        google_review_url="https://example.com/a",
+    )
+
+    business_b = create_business(
+        name="Business B",
+        google_review_url="https://example.com/b",
+    )
+
+    waiter_a = create_waiter(
+        business_id=business_a[0],
+        name="César",
+    )
+
+    waiter_b = create_waiter(
+        business_id=business_b[0],
+        name="Luis",
+    )
+
+    review_a = create_review_evidence(
+        business_id=business_a[0],
+        source="manual_import",
+        reviewer_name="Cliente A",
+        rating=5,
+        content="Excelente atención de César.",
+    )
+
+    review_b = create_review_evidence(
+        business_id=business_b[0],
+        source="manual_import",
+        reviewer_name="Cliente B",
+        rating=5,
+        content="Excelente atención de Luis.",
+    )
+
+    create_review_attribution(
+        business_id=business_a[0],
+        review_evidence_id=review_a[0],
+        waiter_id=waiter_a[0],
+        method="name_match",
+        confidence="high",
+        reason="La reseña menciona explícitamente a César.",
+    )
+
+    create_review_attribution(
+        business_id=business_b[0],
+        review_evidence_id=review_b[0],
+        waiter_id=waiter_b[0],
+        method="name_match",
+        confidence="high",
+        reason="La reseña menciona explícitamente a Luis.",
+    )
+
+    analytics = get_review_analytics(
+        business_id=business_a[0],
+    )
+
+    assert analytics["total_review_evidence"] == 1
+    assert analytics["attributed_reviews"] == 1
+    assert analytics["unattributed_reviews"] == 0
+
+    assert analytics["reviews_by_waiter"] == [
+        {
+            "waiter_id": waiter_a[0],
+            "waiter_name": "César",
+            "total_reviews": 1,
+        },
+    ]
