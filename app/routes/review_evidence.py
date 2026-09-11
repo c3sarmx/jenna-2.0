@@ -36,16 +36,24 @@ def create_review_evidence_route(business_id):
             "error": "invalid source"
         }), 400
 
-    evidence = create_review_evidence(
-        business_id=business_id,
-        source=source,
-        content=content,
-        reviewer_name=data.get("reviewer_name"),
-        rating=rating,
-        external_id=data.get("external_id"),
-        published_at=data.get("published_at"),
-        source_url=data.get("source_url"),
-    )
+    try:
+        evidence = create_review_evidence(
+            business_id=business_id,
+            source=source,
+            content=content,
+            reviewer_name=data.get("reviewer_name"),
+            rating=rating,
+            external_id=data.get("external_id"),
+            published_at=data.get("published_at"),
+            source_url=data.get("source_url"),
+        )
+    except ValueError as exc:
+        if str(exc) == "review evidence already exists":
+            return jsonify({
+                "error": str(exc)
+            }), 409
+
+        raise
 
     return jsonify({
         "id": evidence[0],

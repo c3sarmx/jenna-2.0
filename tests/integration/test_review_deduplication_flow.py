@@ -179,3 +179,133 @@ def test_duplicate_search_is_isolated_by_business(
     )
 
     assert result is None
+
+
+def test_create_review_evidence_rejects_duplicate_by_external_id(
+    test_database_url,
+    monkeypatch,
+    clean_database,
+):
+    monkeypatch.setenv("DATABASE_URL", test_database_url)
+
+    business = create_business(
+        name="Duplicate External ID Café",
+        google_review_url="https://example.com/review",
+    )
+
+    first = create_review_evidence(
+        business_id=business[0],
+        source="manual_import",
+        external_id="google-review-001",
+        reviewer_name="Juan Pérez",
+        rating=5,
+        content="Excelente atención.",
+    )
+
+    result = find_duplicate_review_evidence(
+        business_id=business[0],
+        external_id="google-review-001",
+        fingerprint=build_review_fingerprint(
+            reviewer_name="Juan Pérez",
+            rating=5,
+            content="Excelente atención.",
+            published_at=None,
+        ),
+    )
+
+    assert result is not None
+    assert result[0] == "external_id"
+    assert result[1][0] == first[0]
+
+
+def test_create_review_evidence_rejects_duplicate_by_fingerprint(
+    test_database_url,
+    monkeypatch,
+    clean_database,
+):
+    monkeypatch.setenv("DATABASE_URL", test_database_url)
+
+    business = create_business(
+        name="Duplicate Fingerprint Café",
+        google_review_url="https://example.com/review",
+    )
+
+    first = create_review_evidence(
+        business_id=business[0],
+        source="manual_import",
+        reviewer_name="Juan Pérez",
+        rating=5,
+        content="Excelente atención.",
+    )
+
+    fingerprint = build_review_fingerprint(
+        reviewer_name="Juan Pérez",
+        rating=5,
+        content="Excelente atención.",
+        published_at=None,
+    )
+
+    result = find_duplicate_review_evidence(
+        business_id=business[0],
+        external_id=None,
+        fingerprint=fingerprint,
+    )
+
+    assert result is not None
+    assert result[0] == "fingerprint"
+    assert result[1][0] == first[0]
+
+
+def test_create_review_evidence_rejects_duplicate_external_id(
+    test_database_url,
+    monkeypatch,
+    clean_database,
+):
+    monkeypatch.setenv("DATABASE_URL", test_database_url)
+
+    business = create_business(
+        name="Import Duplicate Café",
+        google_review_url="https://example.com/review",
+    )
+
+    first = create_review_evidence(
+        business_id=business[0],
+        source="manual_import",
+        external_id="google-review-001",
+        reviewer_name="Juan Pérez",
+        rating=5,
+        content="Excelente atención.",
+    )
+
+    fingerprint = build_review_fingerprint(
+        reviewer_name="Juan Pérez",
+        rating=5,
+        content="Excelente atención.",
+        published_at=None,
+    )
+
+    duplicate = find_duplicate_review_evidence(
+        business_id=business[0],
+        external_id="google-review-001",
+        fingerprint=fingerprint,
+    )
+
+    assert duplicate is not None
+    assert duplicate[0] == "external_id"
+    assert duplicate[1][0] == first[0]
+
+    try:
+        create_review_evidence(
+            business_id=business[0],
+            source="manual_import",
+            external_id="google-review-001",
+            reviewer_name="Juan Pérez",
+            rating=5,
+            content="Excelente atención.",
+        )
+    except ValueError as exc:
+        assert str(exc) == "review evidence already exists"
+    else:
+        raise AssertionError(
+            "Expected duplicate review evidence to be rejected"
+        )

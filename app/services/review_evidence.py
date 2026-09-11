@@ -71,6 +71,43 @@ def create_review_evidence(
 
     try:
         with conn.cursor() as cur:
+            if external_id is not None:
+                cur.execute(
+                    """
+                    SELECT
+                        id
+                    FROM review_evidence
+                    WHERE business_id = %s
+                      AND external_id = %s
+                    ORDER BY id ASC
+                    LIMIT 1;
+                    """,
+                    (business_id, external_id),
+                )
+
+                if cur.fetchone():
+                    raise ValueError(
+                        "review evidence already exists"
+                    )
+
+            cur.execute(
+                """
+                SELECT
+                    id
+                FROM review_evidence
+                WHERE business_id = %s
+                  AND fingerprint = %s
+                ORDER BY id ASC
+                LIMIT 1;
+                """,
+                (business_id, fingerprint),
+            )
+
+            if cur.fetchone():
+                raise ValueError(
+                    "review evidence already exists"
+                )
+
             cur.execute(
                 """
                 INSERT INTO review_evidence (
@@ -115,6 +152,10 @@ def create_review_evidence(
             conn.commit()
 
             return evidence
+
+    except Exception:
+        conn.rollback()
+        raise
 
     finally:
         conn.close()
