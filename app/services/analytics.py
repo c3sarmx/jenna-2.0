@@ -1,3 +1,5 @@
+from datetime import date, timedelta
+
 from app.database.connection import get_connection
 
 
@@ -152,14 +154,24 @@ def get_business_analytics(business_id, date_from=None, date_to=None):
 
             taps_by_card = cur.fetchall()
 
+            if date_from:
+                daily_start = date.fromisoformat(date_from)
+            else:
+                daily_start = date.today() - timedelta(days=29)
+
+            if date_to:
+                daily_end = date.fromisoformat(date_to)
+            else:
+                daily_end = date.today()
+
             cur.execute(
                 """
                 SELECT
                     dates.day::date,
                     COUNT(t.id) AS total_taps
                 FROM generate_series(
-                    CURRENT_DATE - INTERVAL '29 days',
-                    CURRENT_DATE,
+                    %s::date,
+                    %s::date,
                     INTERVAL '1 day'
                 ) AS dates(day)
                 LEFT JOIN taps t
@@ -168,7 +180,11 @@ def get_business_analytics(business_id, date_from=None, date_to=None):
                 GROUP BY dates.day
                 ORDER BY dates.day;
                 """,
-                (business_id,),
+                (
+                    daily_start,
+                    daily_end,
+                    business_id,
+                ),
             )
 
             daily_taps = cur.fetchall()

@@ -1,5 +1,6 @@
 from datetime import date
 
+from app.database.connection import get_connection
 from app.services.analytics import get_business_analytics
 from app.services.businesses import create_business
 from app.services.cards import create_card
@@ -385,3 +386,83 @@ def test_review_analytics_isolates_businesses(
             "total_reviews": 1,
         },
     ]
+
+
+def test_daily_taps_respects_date_filters(
+    test_database_url,
+    monkeypatch,
+    clean_database,
+):
+    monkeypatch.setenv("DATABASE_URL", test_database_url)
+
+    from datetime import datetime, timezone
+
+    from app.services.analytics import get_business_analytics
+
+    business = create_business(
+        name="Daily Range Café",
+        google_review_url="https://example.com/review",
+    )
+
+    business_id = business[0]
+
+    waiter = create_waiter(
+        business_id=business_id,
+        name="César",
+    )
+
+    card = create_card(
+        business_id=business_id,
+        waiter_id=waiter[0],
+    )
+
+    tap_inside = create_tap(
+        business_id=business_id,
+        waiter_id=waiter[0],
+        source="nfc",
+        card_id=card[0],
+    )
+
+    conn = get_connection()
+
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                UPDATE taps
+                SET created_at = %s
+                WHERE id = %s;
+                """,
+                (
+                    datetime(
+                        2026, 8, 15, 12, 0,
+                        tzinfo=timezone.utc,
+                    ),
+                    tap_inside[0],
+                ),
+            )
+
+            conn.commit()
+    finally:
+        conn.close()
+
+    _, _, _, daily_taps = get_business_analytics(
+        business_id=business_id,
+        date_from="2026-08-10",
+        date_to="2026-08-20",
+    )
+
+    daily_by_date = {
+        day: total_taps
+        for day, total_taps in daily_taps
+    }
+
+    assert len(daily_taps) == 11
+    assert daily_taps[0][0] == date(2026, 8, 10)
+    assert daily_taps[-1][0] == date(2026, 8, 20)
+
+    assert daily_by_date[date(2026, 8, 15)] == 1
+
+    for day, total_taps in daily_taps:
+        if day != date(2026, 8, 15):
+            assert total_taps == 0
