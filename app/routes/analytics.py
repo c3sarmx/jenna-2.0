@@ -1,3 +1,5 @@
+from datetime import date
+
 from flask import Blueprint, jsonify, request
 
 from app.auth.decorators import require_business_access
@@ -15,6 +17,34 @@ analytics_bp = Blueprint("analytics", __name__)
 def get_business_analytics_route(business_id):
     date_from = request.args.get("from")
     date_to = request.args.get("to")
+
+    parsed_date_from = None
+    parsed_date_to = None
+
+    if date_from:
+        try:
+            parsed_date_from = date.fromisoformat(date_from)
+        except ValueError:
+            return jsonify({
+                "error": "invalid from date"
+            }), 400
+
+    if date_to:
+        try:
+            parsed_date_to = date.fromisoformat(date_to)
+        except ValueError:
+            return jsonify({
+                "error": "invalid to date"
+            }), 400
+
+    if (
+        parsed_date_from is not None
+        and parsed_date_to is not None
+        and parsed_date_from > parsed_date_to
+    ):
+        return jsonify({
+            "error": "invalid date range"
+        }), 400
 
     summary, taps_by_waiter, taps_by_card, daily_taps = get_business_analytics(
         business_id=business_id,

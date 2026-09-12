@@ -214,3 +214,106 @@ def test_analytics_includes_review_analytics():
         date_from=None,
         date_to=None,
     )
+
+
+def test_analytics_rejects_invalid_from_format():
+    client = make_app().test_client()
+    login_session(client)
+
+    with patch(
+        "app.auth.decorators.user_has_business_access",
+        return_value=True,
+    ):
+        response = client.get(
+            "/api/businesses/4/analytics?from=hola"
+        )
+
+    assert response.status_code == 400
+    assert response.get_json() == {
+        "error": "invalid from date"
+    }
+
+
+def test_analytics_rejects_invalid_to_date():
+    client = make_app().test_client()
+    login_session(client)
+
+    with patch(
+        "app.auth.decorators.user_has_business_access",
+        return_value=True,
+    ):
+        response = client.get(
+            "/api/businesses/4/analytics?to=2026-99-99"
+        )
+
+    assert response.status_code == 400
+    assert response.get_json() == {
+        "error": "invalid to date"
+    }
+
+
+def test_analytics_rejects_reversed_date_range():
+    client = make_app().test_client()
+    login_session(client)
+
+    with patch(
+        "app.auth.decorators.user_has_business_access",
+        return_value=True,
+    ), patch(
+        "app.routes.analytics.get_business_analytics",
+    ) as analytics_mock, patch(
+        "app.routes.analytics.get_review_analytics",
+    ) as review_analytics_mock:
+        response = client.get(
+            "/api/businesses/4/analytics"
+            "?from=2026-08-31&to=2026-08-01"
+        )
+
+    assert response.status_code == 400
+    assert response.get_json() == {
+        "error": "invalid date range"
+    }
+
+    analytics_mock.assert_not_called()
+    review_analytics_mock.assert_not_called()
+
+
+def test_analytics_accepts_valid_date_range():
+    client = make_app().test_client()
+    login_session(client)
+
+    summary = (10, 2, 50, 4, 5, 1)
+
+    with patch(
+        "app.auth.decorators.user_has_business_access",
+        return_value=True,
+    ), patch(
+        "app.routes.analytics.get_business_analytics",
+        return_value=(summary, [], [], []),
+    ) as analytics_mock, patch(
+        "app.routes.analytics.get_review_analytics",
+        return_value={
+            "total_review_evidence": 0,
+            "attributed_reviews": 0,
+            "unattributed_reviews": 0,
+            "reviews_by_waiter": [],
+        },
+    ) as review_analytics_mock:
+        response = client.get(
+            "/api/businesses/4/analytics"
+            "?from=2026-08-01&to=2026-08-29"
+        )
+
+    assert response.status_code == 200
+
+    analytics_mock.assert_called_once_with(
+        business_id=4,
+        date_from="2026-08-01",
+        date_to="2026-08-29",
+    )
+
+    review_analytics_mock.assert_called_once_with(
+        business_id=4,
+        date_from="2026-08-01",
+        date_to="2026-08-29",
+    )
