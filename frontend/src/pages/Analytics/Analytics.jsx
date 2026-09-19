@@ -5,11 +5,43 @@ import ErrorState from "../../components/ErrorState/ErrorState";
 import { getAnalytics } from "../../services/api";
 import "./Analytics.css";
 
+const PERIODS = [
+  { value: "today", label: "Hoy", days: 1 },
+  { value: "7d", label: "Últimos 7 días", days: 7 },
+  { value: "30d", label: "Últimos 30 días", days: 30 },
+  { value: "90d", label: "Últimos 90 días", days: 90 },
+];
+
+function formatDateInput(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+function getPeriodDates(days) {
+  const today = new Date();
+  const dateTo = formatDateInput(today);
+
+  const dateFromValue = new Date(today);
+  dateFromValue.setDate(today.getDate() - (days - 1));
+
+  return {
+    dateFrom: formatDateInput(dateFromValue),
+    dateTo,
+  };
+}
+
 function Analytics({ business }) {
   const [analytics, setAnalytics] = useState(null);
+  const [period, setPeriod] = useState("30d");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [retryKey, setRetryKey] = useState(0);
+
+  const selectedPeriod =
+    PERIODS.find((item) => item.value === period) ?? PERIODS[2];
 
   useEffect(() => {
     async function loadAnalytics() {
@@ -17,7 +49,14 @@ function Analytics({ business }) {
         setLoading(true);
         setError(null);
 
-        const data = await getAnalytics(business.id);
+        const { dateFrom, dateTo } = getPeriodDates(
+          selectedPeriod.days
+        );
+
+        const data = await getAnalytics(business.id, {
+          dateFrom,
+          dateTo,
+        });
 
         setAnalytics(data);
       } catch (requestError) {
@@ -28,7 +67,11 @@ function Analytics({ business }) {
     }
 
     loadAnalytics();
-  }, [business.id, retryKey]);
+  }, [business.id, selectedPeriod.days, retryKey]);
+
+  function handlePeriodChange(event) {
+    setPeriod(event.target.value);
+  }
 
   if (loading) {
     return (
@@ -48,6 +91,13 @@ function Analytics({ business }) {
       </div>
     );
   }
+
+  const reviewAnalytics = analytics.review_analytics ?? {
+    total_review_evidence: 0,
+    attributed_reviews: 0,
+    unattributed_reviews: 0,
+    reviews_by_waiter: [],
+  };
 
   const sources = [
     {
@@ -77,6 +127,10 @@ function Analytics({ business }) {
         : 0,
   }));
 
+  const waiterRanking = [...analytics.taps_by_waiter].sort(
+    (a, b) => b.total_taps - a.total_taps
+  );
+
   return (
     <div className="analytics">
       <motion.header
@@ -97,9 +151,21 @@ function Analytics({ business }) {
           </p>
         </div>
 
-        <span className="analytics-period">
-          Últimos 30 días
-        </span>
+        <label className="analytics-period-control">
+          <span className="sr-only">Periodo de análisis</span>
+
+          <select
+            value={period}
+            onChange={handlePeriodChange}
+            aria-label="Periodo de análisis"
+          >
+            {PERIODS.map((item) => (
+              <option key={item.value} value={item.value}>
+                {item.label}
+              </option>
+            ))}
+          </select>
+        </label>
       </motion.header>
 
       <motion.section
@@ -124,7 +190,7 @@ function Analytics({ business }) {
         >
           <span>Interacciones</span>
           <strong>{analytics.total_taps}</strong>
-          <p>Durante el periodo</p>
+          <p>{selectedPeriod.label}</p>
         </motion.article>
 
         <motion.article
@@ -134,9 +200,9 @@ function Analytics({ business }) {
             visible: { opacity: 1, y: 0 },
           }}
         >
-          <span>Reseñas</span>
-          <strong>{analytics.latest_review_count ?? 0}</strong>
-          <p>Último registro disponible</p>
+          <span>Reseñas registradas</span>
+          <strong>{reviewAnalytics.total_review_evidence}</strong>
+          <p>Dentro de Dukkah</p>
         </motion.article>
 
         <motion.article
@@ -146,26 +212,29 @@ function Analytics({ business }) {
             visible: { opacity: 1, y: 0 },
           }}
         >
-          <span>Meseros</span>
-          <strong>{analytics.total_waiters}</strong>
-          <p>Registrados en el negocio</p>
+          <span>Con atribución</span>
+          <strong>{reviewAnalytics.attributed_reviews}</strong>
+          <p>Reseñas con atribución</p>
         </motion.article>
       </motion.section>
 
-      <section className="analytics-grid">
-        <article className="analytics-panel analytics-activity">
-          <div className="analytics-panel-heading">
-            <div>
-              <p className="panel-kicker">Actividad</p>
-              <h2>Interacciones a lo largo del tiempo</h2>
-            </div>
-
-            <span>30 días</span>
+      <section className="analytics-panel analytics-activity">
+        <div className="analytics-panel-heading">
+          <div>
+            <p className="panel-kicker">Actividad</p>
+            <h2>Interacciones a lo largo del tiempo</h2>
           </div>
 
-          <ActivityChart dailyTaps={analytics.daily_taps} />
-        </article>
+          <span>{selectedPeriod.label}</span>
+        </div>
 
+        <ActivityChart
+          dailyTaps={analytics.daily_taps}
+          periodLabel={selectedPeriod.label}
+        />
+      </section>
+
+      <section className="analytics-grid">
         <article className="analytics-panel analytics-sources">
           <div className="analytics-panel-heading">
             <div>
@@ -202,52 +271,92 @@ function Analytics({ business }) {
             ))}
           </div>
         </article>
+
+        <article className="analytics-panel analytics-reviews">
+          <div className="analytics-panel-heading">
+            <div>
+              <p className="panel-kicker">Reseñas</p>
+              <h2>Estado de las atribuciones</h2>
+            </div>
+          </div>
+
+          <div className="analytics-review-summary">
+            <div className="analytics-review-total">
+              <strong>{reviewAnalytics.total_review_evidence}</strong>
+              <span>Registradas en Dukkah</span>
+            </div>
+
+            <div className="analytics-review-row">
+              <span>Atribuidas</span>
+              <strong>{reviewAnalytics.attributed_reviews}</strong>
+            </div>
+
+            <div className="analytics-review-row">
+              <span>Sin atribución</span>
+              <strong>{reviewAnalytics.unattributed_reviews}</strong>
+            </div>
+
+            <div className="analytics-review-row">
+              <span>Último conteo registrado</span>
+              <strong>{analytics.latest_review_count}</strong>
+            </div>
+          </div>
+        </article>
       </section>
 
       <section className="analytics-panel analytics-ranking">
         <div className="analytics-panel-heading">
           <div>
-            <p className="panel-kicker">Rendimiento</p>
-            <h2>Interacciones por mesero</h2>
+            <p className="panel-kicker">Actividad por mesero</p>
+            <h2>Interacciones registradas</h2>
           </div>
         </div>
 
         <div className="waiter-ranking">
-          {analytics.taps_by_waiter.map((waiter, index) => (
-            <div className="waiter-ranking-item" key={waiter.waiter_id}>
-              <span className="waiter-ranking-position">
-                {String(index + 1).padStart(2, "0")}
-              </span>
+          {waiterRanking.length === 0 ? (
+            <p className="analytics-empty">
+              Todavía no hay interacciones registradas.
+            </p>
+          ) : (
+            waiterRanking.map((waiter, index) => (
+              <div
+                className="waiter-ranking-item"
+                key={waiter.waiter_id}
+              >
+                <span className="waiter-ranking-position">
+                  {String(index + 1).padStart(2, "0")}
+                </span>
 
-              <div className="waiter-ranking-info">
-                <strong>{waiter.waiter_name}</strong>
+                <div className="waiter-ranking-info">
+                  <strong>{waiter.waiter_name}</strong>
 
-                <div className="waiter-ranking-bar">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{
-                      width: `${
-                        analytics.total_taps > 0
-                          ? (waiter.total_taps /
-                              analytics.total_taps) *
-                            100
-                          : 0
-                      }%`,
-                    }}
-                    transition={{
-                      duration: 0.8,
-                      delay: index * 0.08,
-                      ease: "easeOut",
-                    }}
-                  />
+                  <div className="waiter-ranking-bar">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{
+                        width: `${
+                          analytics.total_taps > 0
+                            ? (waiter.total_taps /
+                                analytics.total_taps) *
+                              100
+                            : 0
+                        }%`,
+                      }}
+                      transition={{
+                        duration: 0.8,
+                        delay: index * 0.08,
+                        ease: "easeOut",
+                      }}
+                    />
+                  </div>
                 </div>
-              </div>
 
-              <strong className="waiter-ranking-total">
-                {waiter.total_taps}
-              </strong>
-            </div>
-          ))}
+                <strong className="waiter-ranking-total">
+                  {waiter.total_taps}
+                </strong>
+              </div>
+            ))
+          )}
         </div>
       </section>
     </div>

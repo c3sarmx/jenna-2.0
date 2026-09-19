@@ -6,6 +6,7 @@ from app.auth.decorators import require_business_access
 from app.services.analytics import (
     get_business_analytics,
     get_review_analytics,
+    get_waiter_weekly_analytics,
 )
 
 
@@ -15,8 +16,8 @@ analytics_bp = Blueprint("analytics", __name__)
 @analytics_bp.get("/businesses/<int:business_id>/analytics")
 @require_business_access
 def get_business_analytics_route(business_id):
-    date_from = request.args.get("from")
-    date_to = request.args.get("to")
+    date_from = request.args.get("date_from")
+    date_to = request.args.get("date_to")
 
     parsed_date_from = None
     parsed_date_to = None
@@ -95,3 +96,37 @@ def get_business_analytics_route(business_id):
             for card in taps_by_card
         ],
     }), 200
+
+
+@analytics_bp.get(
+    "/businesses/<int:business_id>/analytics/waiters/weekly"
+)
+@require_business_access
+def get_waiter_weekly_analytics_route(business_id):
+    week_start = request.args.get("week_start")
+
+    if not week_start:
+        return jsonify({
+            "error": "week_start is required"
+        }), 400
+
+    try:
+        parsed_week_start = date.fromisoformat(week_start)
+    except ValueError:
+        return jsonify({
+            "error": "invalid week_start date"
+        }), 400
+
+    analytics = get_waiter_weekly_analytics(
+        business_id=business_id,
+        week_start=parsed_week_start,
+    )
+
+    return jsonify([
+        {
+            **item,
+            "week_start": item["week_start"].isoformat(),
+            "week_end": item["week_end"].isoformat(),
+        }
+        for item in analytics
+    ]), 200

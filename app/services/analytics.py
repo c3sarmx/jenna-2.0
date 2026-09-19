@@ -280,3 +280,136 @@ def get_review_analytics(business_id, date_from=None, date_to=None):
 
     finally:
         conn.close()
+
+
+def get_waiter_daily_analytics(business_id, date_from, date_to):
+    conn = get_connection()
+
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT
+                    dates.day::date AS date,
+                    w.id AS waiter_id,
+                    w.name AS waiter_name,
+                    COUNT(t.id) AS total_taps
+                FROM generate_series(
+                    %s::date,
+                    %s::date,
+                    INTERVAL '1 day'
+                ) AS dates(day)
+                CROSS JOIN waiters w
+                LEFT JOIN taps t
+                    ON t.business_id = %s
+                    AND t.waiter_id = w.id
+                    AND t.created_at::date = dates.day::date
+                WHERE w.business_id = %s
+                GROUP BY
+                    dates.day,
+                    w.id,
+                    w.name
+                ORDER BY
+                    dates.day,
+                    w.id;
+                """,
+                (
+                    date_from,
+                    date_to,
+                    business_id,
+                    business_id,
+                ),
+            )
+
+            rows = cur.fetchall()
+
+            return [
+                {
+                    "date": row[0],
+                    "waiter_id": row[1],
+                    "waiter_name": row[2],
+                    "total_taps": row[3],
+                }
+                for row in rows
+            ]
+
+    finally:
+        conn.close()
+
+
+def get_waiter_weekly_analytics(business_id, week_start):
+    conn = get_connection()
+
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                WITH week AS (
+                    SELECT
+                        %s::date AS week_start,
+                        (%s::date + INTERVAL '6 days')::date
+                            AS week_end
+                )
+                SELECT
+                    w.id AS waiter_id,
+                    w.name AS waiter_name,
+                    week.week_start,
+                    week.week_end,
+                    COUNT(t.id) AS total_taps,
+                    target.weekly_target
+                FROM waiters w
+                CROSS JOIN week
+                LEFT JOIN taps t
+                    ON t.business_id = %s
+                    AND t.waiter_id = w.id
+                    AND t.created_at::date
+                        BETWEEN week.week_start AND week.week_end
+                LEFT JOIN LATERAL (
+                    SELECT wt.weekly_target
+                    FROM waiter_targets wt
+                    WHERE wt.waiter_id = w.id
+                      AND wt.effective_from <= week.week_start
+                    ORDER BY wt.effective_from DESC
+                    LIMIT 1
+                ) target ON TRUE
+                WHERE w.business_id = %s
+                GROUP BY
+                    w.id,
+                    w.name,
+                    week.week_start,
+                    week.week_end,
+                    target.weekly_target
+                ORDER BY w.id;
+                """,
+                (
+                    week_start,
+                    week_start,
+                    business_id,
+                    business_id,
+                ),
+            )
+
+            rows = cur.fetchall()
+
+            return [
+                {
+                    "waiter_id": row[0],
+                    "waiter_name": row[1],
+                    "week_start": row[2],
+                    "week_end": row[3],
+                    "total_taps": row[4],
+                    "weekly_target": row[5],
+                    "reach_percentage": (
+                        round(
+                            (row[4] / row[5]) * 100,
+                            2,
+                        )
+                        if row[5] is not None and row[5] > 0
+                        else None
+                    ),
+                }
+                for row in rows
+            ]
+
+    finally:
+        conn.close()

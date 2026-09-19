@@ -49,8 +49,25 @@ export async function getBusinesses() {
   return request("/businesses");
 }
 
-export async function getAnalytics(businessId) {
-  return request(`/businesses/${businessId}/analytics`);
+export async function getAnalytics(
+  businessId,
+  { dateFrom, dateTo } = {}
+) {
+  const params = new URLSearchParams();
+
+  if (dateFrom) {
+    params.set("date_from", dateFrom);
+  }
+
+  if (dateTo) {
+    params.set("date_to", dateTo);
+  }
+
+  const query = params.toString();
+
+  return request(
+    `/businesses/${businessId}/analytics${query ? `?${query}` : ""}`
+  );
 }
 
 export async function getCards(businessId) {

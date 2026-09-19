@@ -103,6 +103,27 @@ CREATE INDEX idx_cards_waiter
 CREATE INDEX idx_waiters_business
     ON waiters(business_id);
 
+CREATE TABLE waiter_targets (
+    id BIGSERIAL PRIMARY KEY,
+    waiter_id BIGINT NOT NULL
+        REFERENCES waiters(id) ON DELETE CASCADE,
+    weekly_target INTEGER NOT NULL,
+    effective_from DATE NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT waiter_targets_weekly_target_check
+        CHECK (weekly_target >= 0),
+
+    CONSTRAINT waiter_targets_unique_effective
+        UNIQUE (waiter_id, effective_from)
+);
+
+CREATE INDEX idx_waiter_targets_waiter
+    ON waiter_targets(waiter_id);
+
+CREATE INDEX idx_waiter_targets_effective_from
+    ON waiter_targets(waiter_id, effective_from);
+
 CREATE INDEX idx_taps_business
     ON taps(business_id);
 

@@ -10,7 +10,7 @@ function formatDate(dateString) {
   }).format(new Date(Number(year), Number(month) - 1, Number(day)));
 }
 
-function ActivityChart({ dailyTaps = [] }) {
+function ActivityChart({ dailyTaps = [], periodLabel = "Últimos 30 días" }) {
   const values = dailyTaps.map((item) => item.total_taps);
   const maxValue = Math.max(...values, 1);
 
@@ -50,7 +50,7 @@ function ActivityChart({ dailyTaps = [] }) {
         viewBox="0 0 100 150"
         preserveAspectRatio="none"
         role="img"
-        aria-label="Evolución de interacciones durante los últimos 30 días"
+        aria-label={`Evolución de interacciones durante ${periodLabel.toLowerCase()}`}
       >
         {points.length > 0 && (
           <>

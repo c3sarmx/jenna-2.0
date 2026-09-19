@@ -143,7 +143,7 @@ def test_analytics_passes_date_filters():
     ):
         response = client.get(
             "/api/businesses/4/analytics"
-            "?from=2026-08-01&to=2026-08-29"
+            "?date_from=2026-08-01&date_to=2026-08-29"
         )
 
     assert response.status_code == 200
@@ -225,7 +225,7 @@ def test_analytics_rejects_invalid_from_format():
         return_value=True,
     ):
         response = client.get(
-            "/api/businesses/4/analytics?from=hola"
+            "/api/businesses/4/analytics?date_from=hola"
         )
 
     assert response.status_code == 400
@@ -243,7 +243,7 @@ def test_analytics_rejects_invalid_to_date():
         return_value=True,
     ):
         response = client.get(
-            "/api/businesses/4/analytics?to=2026-99-99"
+            "/api/businesses/4/analytics?date_to=2026-99-99"
         )
 
     assert response.status_code == 400
@@ -266,7 +266,7 @@ def test_analytics_rejects_reversed_date_range():
     ) as review_analytics_mock:
         response = client.get(
             "/api/businesses/4/analytics"
-            "?from=2026-08-31&to=2026-08-01"
+            "?date_from=2026-08-31&date_to=2026-08-01"
         )
 
     assert response.status_code == 400
@@ -301,7 +301,7 @@ def test_analytics_accepts_valid_date_range():
     ) as review_analytics_mock:
         response = client.get(
             "/api/businesses/4/analytics"
-            "?from=2026-08-01&to=2026-08-29"
+            "?date_from=2026-08-01&date_to=2026-08-29"
         )
 
     assert response.status_code == 200
