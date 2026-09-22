@@ -113,3 +113,35 @@ export async function updateWaiterStatus(businessId, waiterId, active) {
     }),
   });
 }
+
+export async function getBusinessSettings(businessId) {
+  return request(`/businesses/${businessId}/settings`);
+}
+
+export async function updateBusinessSettings(
+  businessId,
+  weeklyReviewsPerWaiter
+) {
+  return request(
+    `/businesses/${businessId}/settings`,
+    {
+      method: "PUT",
+      body: JSON.stringify({
+        weekly_reviews_per_waiter: weeklyReviewsPerWaiter,
+      }),
+    }
+  );
+}
+
+export async function getBusinessWeeklyAnalytics(
+  businessId,
+  weekStart
+) {
+  const params = new URLSearchParams({
+    week_start: weekStart,
+  });
+
+  return request(
+    `/businesses/${businessId}/analytics/weekly?${params.toString()}`
+  );
+}

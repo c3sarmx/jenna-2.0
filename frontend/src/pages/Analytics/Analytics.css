@@ -384,3 +384,106 @@
     width: 100%;
   }
 }
+
+/* Weekly performance */
+
+.analytics-weekly {
+  margin-top: 1rem;
+}
+
+.weekly-review-goal {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 2rem;
+  padding: 1.1rem 0;
+  border-top: 1px solid var(--color-line);
+  border-bottom: 1px solid var(--color-line);
+}
+
+.weekly-review-goal > div {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.weekly-review-goal span {
+  color: var(--color-ink-muted);
+  font-size: var(--text-xs);
+}
+
+.weekly-review-goal strong {
+  font-size: 1.5rem;
+  font-weight: 650;
+  letter-spacing: -0.03em;
+}
+
+.weekly-review-goal small {
+  color: var(--color-ink-muted);
+  font-size: var(--text-xs);
+}
+
+.weekly-review-table-wrapper {
+  margin-top: 1.5rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.weekly-review-table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+  font-size: var(--text-xs);
+}
+
+.weekly-review-table th,
+.weekly-review-table td {
+  padding: 0.9rem 0.65rem;
+  border-bottom: 1px solid var(--color-line);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.weekly-review-table thead th {
+  color: var(--color-ink-muted);
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+
+.weekly-review-table thead th:first-child,
+.weekly-review-table tbody th {
+  text-align: left;
+}
+
+.weekly-review-table tbody th {
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.weekly-review-table tbody tr:last-child th,
+.weekly-review-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.weekly-review-total {
+  font-weight: 650;
+}
+
+.weekly-review-reach {
+  font-weight: 650;
+}
+
+@media (max-width: 700px) {
+  .weekly-review-goal {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .weekly-review-goal small {
+    align-self: flex-start;
+  }
+
+  .weekly-review-table {
+    min-width: 720px;
+  }
+}

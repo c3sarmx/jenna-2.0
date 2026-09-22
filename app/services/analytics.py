@@ -337,7 +337,7 @@ def get_waiter_daily_analytics(business_id, date_from, date_to):
         conn.close()
 
 
-def get_waiter_weekly_analytics(business_id, week_start):
+def get_business_weekly_analytics(business_id, week_start):
     conn = get_connection()
 
     try:
@@ -349,37 +349,123 @@ def get_waiter_weekly_analytics(business_id, week_start):
                         %s::date AS week_start,
                         (%s::date + INTERVAL '6 days')::date
                             AS week_end
+                ),
+                daily_reviews AS (
+                    SELECT
+                        ra.waiter_id,
+                        re.published_at::date AS review_date,
+                        COUNT(DISTINCT re.id) AS review_count
+                    FROM review_attributions AS ra
+                    INNER JOIN review_evidence AS re
+                        ON re.id = ra.review_evidence_id
+                    INNER JOIN week
+                        ON re.published_at::date
+                            BETWEEN week.week_start
+                            AND week.week_end
+                    WHERE re.business_id = %s
+                      AND re.published_at IS NOT NULL
+                    GROUP BY
+                        ra.waiter_id,
+                        re.published_at::date
                 )
                 SELECT
-                    w.id AS waiter_id,
-                    w.name AS waiter_name,
+                    w.id,
+                    w.name,
+                    COALESCE(
+                        SUM(
+                            CASE
+                                WHEN dr.review_date = week.week_start
+                                THEN dr.review_count
+                                ELSE 0
+                            END
+                        ),
+                        0
+                    ) AS monday,
+                    COALESCE(
+                        SUM(
+                            CASE
+                                WHEN dr.review_date =
+                                    week.week_start + 1
+                                THEN dr.review_count
+                                ELSE 0
+                            END
+                        ),
+                        0
+                    ) AS tuesday,
+                    COALESCE(
+                        SUM(
+                            CASE
+                                WHEN dr.review_date =
+                                    week.week_start + 2
+                                THEN dr.review_count
+                                ELSE 0
+                            END
+                        ),
+                        0
+                    ) AS wednesday,
+                    COALESCE(
+                        SUM(
+                            CASE
+                                WHEN dr.review_date =
+                                    week.week_start + 3
+                                THEN dr.review_count
+                                ELSE 0
+                            END
+                        ),
+                        0
+                    ) AS thursday,
+                    COALESCE(
+                        SUM(
+                            CASE
+                                WHEN dr.review_date =
+                                    week.week_start + 4
+                                THEN dr.review_count
+                                ELSE 0
+                            END
+                        ),
+                        0
+                    ) AS friday,
+                    COALESCE(
+                        SUM(
+                            CASE
+                                WHEN dr.review_date =
+                                    week.week_start + 5
+                                THEN dr.review_count
+                                ELSE 0
+                            END
+                        ),
+                        0
+                    ) AS saturday,
+                    COALESCE(
+                        SUM(
+                            CASE
+                                WHEN dr.review_date =
+                                    week.week_start + 6
+                                THEN dr.review_count
+                                ELSE 0
+                            END
+                        ),
+                        0
+                    ) AS sunday,
+                    settings.weekly_reviews_per_waiter,
                     week.week_start,
-                    week.week_end,
-                    COUNT(t.id) AS total_taps,
-                    target.weekly_target
-                FROM waiters w
+                    week.week_end
+                FROM waiters AS w
                 CROSS JOIN week
-                LEFT JOIN taps t
-                    ON t.business_id = %s
-                    AND t.waiter_id = w.id
-                    AND t.created_at::date
-                        BETWEEN week.week_start AND week.week_end
-                LEFT JOIN LATERAL (
-                    SELECT wt.weekly_target
-                    FROM waiter_targets wt
-                    WHERE wt.waiter_id = w.id
-                      AND wt.effective_from <= week.week_start
-                    ORDER BY wt.effective_from DESC
-                    LIMIT 1
-                ) target ON TRUE
+                LEFT JOIN daily_reviews AS dr
+                    ON dr.waiter_id = w.id
+                LEFT JOIN business_settings AS settings
+                    ON settings.business_id = w.business_id
                 WHERE w.business_id = %s
+                  AND w.active = TRUE
                 GROUP BY
                     w.id,
                     w.name,
+                    settings.weekly_reviews_per_waiter,
                     week.week_start,
-                    week.week_end,
-                    target.weekly_target
-                ORDER BY w.id;
+                    week.week_end
+                ORDER BY
+                    w.name ASC;
                 """,
                 (
                     week_start,
@@ -391,25 +477,97 @@ def get_waiter_weekly_analytics(business_id, week_start):
 
             rows = cur.fetchall()
 
-            return [
-                {
-                    "waiter_id": row[0],
-                    "waiter_name": row[1],
-                    "week_start": row[2],
-                    "week_end": row[3],
-                    "total_taps": row[4],
-                    "weekly_target": row[5],
-                    "reach_percentage": (
-                        round(
-                            (row[4] / row[5]) * 100,
-                            2,
-                        )
-                        if row[5] is not None and row[5] > 0
-                        else None
+            if not rows:
+                cur.execute(
+                    """
+                    SELECT
+                        %s::date AS week_start,
+                        (%s::date + INTERVAL '6 days')::date
+                            AS week_end,
+                        weekly_reviews_per_waiter
+                    FROM business_settings
+                    WHERE business_id = %s;
+                    """,
+                    (
+                        week_start,
+                        week_start,
+                        business_id,
                     ),
+                )
+
+                settings = cur.fetchone()
+
+                if settings is None:
+                    weekly_reviews_per_waiter = None
+                else:
+                    weekly_reviews_per_waiter = settings[2]
+
+                return {
+                    "week_start": (
+                        settings[0]
+                        if settings
+                        else week_start
+                    ),
+                    "week_end": (
+                        settings[1]
+                        if settings
+                        else (
+                            week_start
+                            + __import__("datetime").timedelta(days=6)
+                        )
+                    ),
+                    "weekly_reviews_per_waiter": weekly_reviews_per_waiter,
+                    "waiters": [],
                 }
-                for row in rows
-            ]
+
+            week_start_date = rows[0][10]
+            week_end_date = rows[0][11]
+            weekly_reviews_per_waiter = rows[0][9]
+
+            if weekly_reviews_per_waiter is not None:
+                weekly_reviews_per_waiter = int(weekly_reviews_per_waiter)
+
+            waiters = []
+
+            for row in rows:
+                daily = {
+                    "monday": int(row[2]),
+                    "tuesday": int(row[3]),
+                    "wednesday": int(row[4]),
+                    "thursday": int(row[5]),
+                    "friday": int(row[6]),
+                    "saturday": int(row[7]),
+                    "sunday": int(row[8]),
+                }
+
+                total = sum(daily.values())
+
+                reach_percentage = (
+                    round(
+                        (total / weekly_reviews_per_waiter) * 100,
+                        2,
+                    )
+                    if weekly_reviews_per_waiter is not None
+                    and weekly_reviews_per_waiter > 0
+                    else None
+                )
+
+                waiters.append(
+                    {
+                        "waiter_id": row[0],
+                        "waiter_name": row[1],
+                        "daily": daily,
+                        "total": total,
+                        "reach_percentage": reach_percentage,
+                    }
+                )
+
+            return {
+                "week_start": week_start_date,
+                "week_end": week_end_date,
+                "weekly_reviews_per_waiter": weekly_reviews_per_waiter,
+                "waiters": waiters,
+            }
 
     finally:
         conn.close()

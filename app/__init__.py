@@ -31,7 +31,7 @@ def create_app():
     from app.routes.health import health_bp
     from app.routes.businesses import businesses_bp
     from app.routes.waiters import waiters_bp
-    from app.routes.waiter_targets import waiter_targets_bp
+    from app.routes.business_settings import business_settings_bp
     from app.routes.review_snapshots import review_snapshots_bp
     from app.routes.review_evidence import review_evidence_bp
     from app.routes.review_attributions import review_attributions_bp
@@ -47,7 +47,7 @@ def create_app():
     app.register_blueprint(businesses_bp, url_prefix=api_prefix)
     app.register_blueprint(waiters_bp, url_prefix=api_prefix)
     app.register_blueprint(
-        waiter_targets_bp,
+        business_settings_bp,
         url_prefix=api_prefix,
     )
     app.register_blueprint(review_snapshots_bp, url_prefix=api_prefix)

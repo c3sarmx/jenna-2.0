@@ -6,7 +6,7 @@ from app.auth.decorators import require_business_access
 from app.services.analytics import (
     get_business_analytics,
     get_review_analytics,
-    get_waiter_weekly_analytics,
+    get_business_weekly_analytics,
 )
 
 
@@ -99,10 +99,10 @@ def get_business_analytics_route(business_id):
 
 
 @analytics_bp.get(
-    "/businesses/<int:business_id>/analytics/waiters/weekly"
+    "/businesses/<int:business_id>/analytics/weekly"
 )
 @require_business_access
-def get_waiter_weekly_analytics_route(business_id):
+def get_business_weekly_analytics_route(business_id):
     week_start = request.args.get("week_start")
 
     if not week_start:
@@ -117,16 +117,13 @@ def get_waiter_weekly_analytics_route(business_id):
             "error": "invalid week_start date"
         }), 400
 
-    analytics = get_waiter_weekly_analytics(
+    analytics = get_business_weekly_analytics(
         business_id=business_id,
         week_start=parsed_week_start,
     )
 
-    return jsonify([
-        {
-            **item,
-            "week_start": item["week_start"].isoformat(),
-            "week_end": item["week_end"].isoformat(),
-        }
-        for item in analytics
-    ]), 200
+    return jsonify({
+        **analytics,
+        "week_start": analytics["week_start"].isoformat(),
+        "week_end": analytics["week_end"].isoformat(),
+    }), 200

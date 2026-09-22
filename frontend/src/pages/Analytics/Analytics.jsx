@@ -2,7 +2,10 @@ import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import ActivityChart from "../../components/ActivityChart/ActivityChart";
 import ErrorState from "../../components/ErrorState/ErrorState";
-import { getAnalytics } from "../../services/api";
+import {
+  getAnalytics,
+  getBusinessWeeklyAnalytics,
+} from "../../services/api";
 import "./Analytics.css";
 
 const PERIODS = [
@@ -33,8 +36,32 @@ function getPeriodDates(days) {
   };
 }
 
+function getCurrentWeekStart() {
+  const today = new Date();
+  const day = today.getDay();
+  const daysSinceMonday = day === 0 ? 6 : day - 1;
+
+  const weekStart = new Date(today);
+  weekStart.setDate(today.getDate() - daysSinceMonday);
+
+  return formatDateInput(weekStart);
+}
+
+function formatWeekRange(weekStart, weekEnd) {
+  const start = new Date(`${weekStart}T00:00:00`);
+  const end = new Date(`${weekEnd}T00:00:00`);
+
+  const formatter = new Intl.DateTimeFormat("es-MX", {
+    day: "numeric",
+    month: "short",
+  });
+
+  return `${formatter.format(start)} — ${formatter.format(end)}`;
+}
+
 function Analytics({ business }) {
   const [analytics, setAnalytics] = useState(null);
+  const [weeklyAnalytics, setWeeklyAnalytics] = useState(null);
   const [period, setPeriod] = useState("30d");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -53,12 +80,19 @@ function Analytics({ business }) {
           selectedPeriod.days
         );
 
-        const data = await getAnalytics(business.id, {
-          dateFrom,
-          dateTo,
-        });
+        const [data, weeklyData] = await Promise.all([
+          getAnalytics(business.id, {
+            dateFrom,
+            dateTo,
+          }),
+          getBusinessWeeklyAnalytics(
+            business.id,
+            getCurrentWeekStart()
+          ),
+        ]);
 
         setAnalytics(data);
+        setWeeklyAnalytics(weeklyData);
       } catch (requestError) {
         setError(requestError);
       } finally {
@@ -302,6 +336,87 @@ function Analytics({ business }) {
             </div>
           </div>
         </article>
+      </section>
+
+      <section className="analytics-panel analytics-weekly">
+        <div className="analytics-panel-heading">
+          <div>
+            <p className="panel-kicker">Rendimiento semanal</p>
+            <h2>Reseñas por mesero</h2>
+          </div>
+
+          {weeklyAnalytics && (
+            <span>
+              {formatWeekRange(
+                weeklyAnalytics.week_start,
+                weeklyAnalytics.week_end
+              )}
+            </span>
+          )}
+        </div>
+
+        <div className="weekly-review-goal">
+          <div>
+            <span>Meta semanal por mesero</span>
+            <strong>
+              {weeklyAnalytics?.weekly_reviews_per_waiter ?? "—"}
+            </strong>
+          </div>
+
+          <small>reseñas atribuidas / semana</small>
+        </div>
+
+        {!weeklyAnalytics ||
+        weeklyAnalytics.waiters.length === 0 ? (
+          <p className="analytics-empty">
+            Todavía no hay meseros activos para mostrar.
+          </p>
+        ) : (
+          <div className="weekly-review-table-wrapper">
+            <table className="weekly-review-table">
+              <thead>
+                <tr>
+                  <th>Mesero</th>
+                  <th>Lun</th>
+                  <th>Mar</th>
+                  <th>Mié</th>
+                  <th>Jue</th>
+                  <th>Vie</th>
+                  <th>Sáb</th>
+                  <th>Dom</th>
+                  <th>Total</th>
+                  <th>Alcance</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {weeklyAnalytics.waiters.map((waiter) => (
+                  <tr key={waiter.waiter_id}>
+                    <th scope="row">{waiter.waiter_name}</th>
+
+                    <td>{waiter.daily.monday}</td>
+                    <td>{waiter.daily.tuesday}</td>
+                    <td>{waiter.daily.wednesday}</td>
+                    <td>{waiter.daily.thursday}</td>
+                    <td>{waiter.daily.friday}</td>
+                    <td>{waiter.daily.saturday}</td>
+                    <td>{waiter.daily.sunday}</td>
+
+                    <td className="weekly-review-total">
+                      {waiter.total}
+                    </td>
+
+                    <td className="weekly-review-reach">
+                      {waiter.reach_percentage !== null
+                        ? `${waiter.reach_percentage}%`
+                        : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </section>
 
       <section className="analytics-panel analytics-ranking">
