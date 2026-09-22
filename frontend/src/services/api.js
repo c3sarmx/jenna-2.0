@@ -145,3 +145,67 @@ export async function getBusinessWeeklyAnalytics(
     `/businesses/${businessId}/analytics/weekly?${params.toString()}`
   );
 }
+
+export async function getReviewEvidence(businessId) {
+  return request(
+    `/businesses/${businessId}/review-evidence`
+  );
+}
+
+export async function createReviewEvidence(
+  businessId,
+  {
+    reviewerName,
+    rating,
+    content,
+    publishedAt,
+    source = "manual_import",
+    sourceUrl = null,
+  }
+) {
+  return request(
+    `/businesses/${businessId}/review-evidence`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        source,
+        reviewer_name: reviewerName || null,
+        rating: rating || null,
+        content,
+        published_at: publishedAt || null,
+        source_url: sourceUrl || null,
+      }),
+    }
+  );
+}
+
+export async function getReviewAttributions(businessId) {
+  return request(
+    `/businesses/${businessId}/review-attributions`
+  );
+}
+
+export async function createReviewAttribution(
+  businessId,
+  {
+    reviewEvidenceId,
+    waiterId,
+    method,
+    confidence,
+    reason = null,
+  }
+) {
+  return request(
+    `/businesses/${businessId}/review-attributions`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        review_evidence_id: reviewEvidenceId,
+        waiter_id: waiterId,
+        method,
+        confidence,
+        reason,
+      }),
+    }
+  );
+}

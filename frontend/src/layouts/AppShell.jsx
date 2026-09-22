@@ -4,6 +4,7 @@ import {
   ChevronDown,
   CreditCard,
   LayoutDashboard,
+  MessageSquareText,
   Settings as SettingsIcon,
   Users,
 } from "lucide-react";
@@ -13,6 +14,7 @@ import Cards from "../pages/Cards/Cards";
 import Waiters from "../pages/Waiters/Waiters";
 import Login from "../pages/Login/Login";
 import Settings from "../pages/Settings/Settings";
+import Reviews from "../pages/Reviews/Reviews";
 import { getBusinesses, getMe, logout } from "../services/api";
 import "./AppShell.css";
 
@@ -21,6 +23,7 @@ const navigation = [
   { id: "analytics", label: "Analítica", icon: BarChart3 },
   { id: "cards", label: "Tarjetas", icon: CreditCard },
   { id: "waiters", label: "Meseros", icon: Users },
+  { id: "reviews", label: "Reseñas", icon: MessageSquareText },
   {
     id: "settings",
     label: "Configuración",
@@ -138,6 +141,9 @@ function AppShell() {
 
       case "settings":
         return <Settings business={business} />;
+
+      case "reviews":
+        return <Reviews business={business} />;
 
       case "dashboard":
       default:
