@@ -176,6 +176,10 @@ CREATE INDEX idx_review_evidence_published_at
 CREATE INDEX idx_review_evidence_fingerprint
     ON review_evidence(business_id, fingerprint);
 
+CREATE UNIQUE INDEX idx_review_evidence_external_unique
+    ON review_evidence(business_id, source, external_id)
+    WHERE external_id IS NOT NULL;
+
 CREATE TABLE review_attributions (
     id BIGSERIAL PRIMARY KEY,
     review_evidence_id BIGINT NOT NULL

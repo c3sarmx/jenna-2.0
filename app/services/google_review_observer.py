@@ -20,3 +20,111 @@ def get_new_reviews(reviews, known_review_ids):
         new_reviews.append(review)
 
     return new_reviews
+
+from datetime import datetime
+
+from app.services.businesses import get_business_by_id
+from app.services.google_places import get_place_reviews
+from app.services.review_evidence import (
+    create_review_evidence,
+    get_review_evidence_by_business,
+)
+
+
+def extract_place_id(google_review_url):
+    if not google_review_url:
+        raise ValueError("google_review_url is required")
+
+    marker = "placeid="
+
+    if marker not in google_review_url:
+        raise ValueError(
+            "google_review_url does not contain a place_id"
+        )
+
+    place_id = google_review_url.split(marker, 1)[1].split(
+        "&", 1
+    )[0]
+
+    if not place_id:
+        raise ValueError("place_id is required")
+
+    return place_id
+
+
+def _parse_publish_time(value):
+    if not value:
+        return None
+
+    if value.endswith("Z"):
+        value = value[:-1] + "+00:00"
+
+    return datetime.fromisoformat(value)
+
+
+def sync_google_reviews(business_id):
+    business = get_business_by_id(business_id)
+
+    if not business:
+        raise ValueError("business not found")
+
+    google_review_url = business[2]
+
+    place_id = extract_place_id(google_review_url)
+
+    reviews = get_place_reviews(place_id)
+
+    existing_evidence = get_review_evidence_by_business(
+        business_id
+    )
+
+    known_review_ids = {
+        item[3]
+        for item in existing_evidence
+        if item[3]
+    }
+
+    new_reviews = get_new_reviews(
+        reviews,
+        known_review_ids,
+    )
+
+    imported = 0
+    duplicates = 0
+
+    for review in new_reviews:
+        try:
+            create_review_evidence(
+                business_id=business_id,
+                source="google_places",
+                external_id=review["id"],
+                reviewer_name=(
+                    review.get("author") or {}
+                ).get("display_name"),
+                rating=review.get("rating"),
+                content=review.get("text") or "",
+                published_at=_parse_publish_time(
+                    review.get("publish_time")
+                ),
+                source_url=review.get(
+                    "google_maps_uri"
+                ),
+            )
+
+            imported += 1
+
+        except ValueError as exc:
+            if str(exc) == "review evidence already exists":
+                duplicates += 1
+                continue
+
+            raise
+
+    return {
+        "business_id": business_id,
+        "place_id": place_id,
+        "reviews_received": len(reviews),
+        "new_reviews": len(new_reviews),
+        "imported": imported,
+        "duplicates": duplicates,
+    }

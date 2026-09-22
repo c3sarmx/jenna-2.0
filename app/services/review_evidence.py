@@ -1,6 +1,8 @@
 from hashlib import sha256
 import re
 
+from psycopg.errors import UniqueViolation
+
 
 def _normalize_fingerprint_text(value):
     if value is None:
@@ -90,23 +92,24 @@ def create_review_evidence(
                         "review evidence already exists"
                     )
 
-            cur.execute(
-                """
-                SELECT
-                    id
-                FROM review_evidence
-                WHERE business_id = %s
-                  AND fingerprint = %s
-                ORDER BY id ASC
-                LIMIT 1;
-                """,
-                (business_id, fingerprint),
-            )
-
-            if cur.fetchone():
-                raise ValueError(
-                    "review evidence already exists"
+            else:
+                cur.execute(
+                    """
+                    SELECT
+                        id
+                    FROM review_evidence
+                    WHERE business_id = %s
+                      AND fingerprint = %s
+                    ORDER BY id ASC
+                    LIMIT 1;
+                    """,
+                    (business_id, fingerprint),
                 )
+
+                if cur.fetchone():
+                    raise ValueError(
+                        "review evidence already exists"
+                    )
 
             cur.execute(
                 """
@@ -153,6 +156,11 @@ def create_review_evidence(
 
             return evidence
 
+    except UniqueViolation:
+        conn.rollback()
+        raise ValueError(
+            "review evidence already exists"
+        )
     except Exception:
         conn.rollback()
         raise
