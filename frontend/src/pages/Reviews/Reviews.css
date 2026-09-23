@@ -404,3 +404,25 @@
     border-bottom: 0;
   }
 }
+
+.review-original-button {
+  margin-top: 0.55rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-ink-muted);
+  font: inherit;
+  font-size: var(--text-xs);
+  cursor: pointer;
+}
+
+.review-original-button:hover {
+  color: var(--color-ink);
+}
+
+.review-original-content {
+  margin-top: 0.5rem !important;
+  color: var(--color-ink-muted);
+  font-size: var(--text-xs) !important;
+  line-height: 1.5;
+}

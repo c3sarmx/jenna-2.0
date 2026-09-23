@@ -106,8 +106,13 @@ def get_review_evidence_route(business_id):
                 else None
             ),
             "source_url": item[8],
-                "fingerprint": item[9],
-                "imported_at": item[10].isoformat(),
+            "fingerprint": item[9],
+            "imported_at": item[10].isoformat(),
+            "translated_content": (
+                item[11]
+                if len(item) > 11
+                else None
+            ),
         }
         for item in evidence
     ]), 200

@@ -257,3 +257,87 @@ def test_sync_google_reviews_is_idempotent(
     )
 
     assert len(evidence) == 2
+
+
+def test_sync_google_reviews_saves_spanish_translation(
+    test_database_url,
+    monkeypatch,
+    clean_database,
+):
+    monkeypatch.setenv(
+        "DATABASE_URL",
+        test_database_url,
+    )
+
+    from app.services.businesses import create_business
+    from app.services.google_review_observer import (
+        sync_google_reviews,
+    )
+
+    business = create_business(
+        name="Translation Café",
+        google_review_url=(
+            "https://search.google.com/local/writereview"
+            "?placeid=PLACE123"
+        ),
+    )
+
+    reviews = [
+        {
+            "id": "google-review-translation",
+            "rating": 5,
+            "text": "Great service and amazing coffee.",
+            "original_text": "Great service and amazing coffee.",
+            "language_code": "en",
+            "original_language_code": "en",
+            "publish_time": "2026-09-22T16:00:00Z",
+            "author": {
+                "display_name": "John Smith",
+            },
+            "google_maps_uri": (
+                "https://google.com/review/translation"
+            ),
+        },
+    ]
+
+    with (
+        patch(
+            "app.services.google_review_observer.get_place_reviews",
+            return_value=reviews,
+        ),
+        patch(
+            "app.services.google_review_observer.translate_to_spanish",
+            return_value="Excelente servicio y café increíble.",
+        ) as translate_mock,
+    ):
+        result = sync_google_reviews(
+            business[0]
+        )
+
+    assert result["imported"] == 1
+
+    translate_mock.assert_called_once_with(
+        "Great service and amazing coffee.",
+        source_language="en",
+    )
+
+    import psycopg
+
+    with psycopg.connect(test_database_url) as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT
+                    content,
+                    translated_content
+                FROM review_evidence
+                WHERE business_id = %s
+                """,
+                (business[0],),
+            )
+            row = cur.fetchone()
+
+    assert row == (
+        "Great service and amazing coffee.",
+        "Excelente servicio y café increíble.",
+    )

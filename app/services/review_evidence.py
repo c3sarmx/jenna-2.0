@@ -61,6 +61,7 @@ def create_review_evidence(
     external_id=None,
     published_at=None,
     source_url=None,
+    translated_content=None,
 ):
     fingerprint = build_review_fingerprint(
         reviewer_name=reviewer_name,
@@ -120,11 +121,15 @@ def create_review_evidence(
                     reviewer_name,
                     rating,
                     content,
+                    translated_content,
                     published_at,
                     source_url,
                     fingerprint
                 )
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                VALUES (
+                    %s, %s, %s, %s, %s, %s,
+                    %s, %s, %s, %s
+                )
                 RETURNING
                     id,
                     business_id,
@@ -145,6 +150,7 @@ def create_review_evidence(
                     reviewer_name,
                     rating,
                     content,
+                    translated_content,
                     published_at,
                     source_url,
                     fingerprint,
@@ -260,7 +266,8 @@ def get_review_evidence_by_business(business_id):
                     published_at,
                     source_url,
                     fingerprint,
-                    imported_at
+                    imported_at,
+                    translated_content
                 FROM review_evidence
                 WHERE business_id = %s
                 ORDER BY imported_at DESC, id DESC;

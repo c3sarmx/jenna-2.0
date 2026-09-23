@@ -44,6 +44,8 @@ function Reviews({ business }) {
 
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [selectedReview, setSelectedReview] = useState(null);
+  const [showOriginalReviewId, setShowOriginalReviewId] =
+    useState(null);
 
   const [reviewerName, setReviewerName] = useState("");
   const [rating, setRating] = useState("");
@@ -404,7 +406,34 @@ function Reviews({ business }) {
                       rating={review.rating}
                     />
 
-                    <p>{review.content}</p>
+                    <p>
+                      {review.translated_content || review.content}
+                    </p>
+
+                    {review.translated_content && (
+                      <button
+                        type="button"
+                        className="review-original-button"
+                        onClick={() =>
+                          setShowOriginalReviewId((currentId) =>
+                            currentId === review.id
+                              ? null
+                              : review.id
+                          )
+                        }
+                      >
+                        {showOriginalReviewId === review.id
+                          ? "Ocultar original"
+                          : "Ver original"}
+                      </button>
+                    )}
+
+                    {review.translated_content &&
+                      showOriginalReviewId === review.id && (
+                        <p className="review-original-content">
+                          {review.content}
+                        </p>
+                      )}
                   </div>
 
                   <div className="review-row-side">

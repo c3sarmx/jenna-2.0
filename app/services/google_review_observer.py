@@ -25,6 +25,10 @@ from datetime import datetime
 
 from app.services.businesses import get_business_by_id
 from app.services.google_places import get_place_reviews
+from app.services.google_translate import (
+    GoogleTranslateError,
+    translate_to_spanish,
+)
 from app.services.review_evidence import (
     create_review_evidence,
     get_review_evidence_by_business,
@@ -97,6 +101,27 @@ def sync_google_reviews(business_id):
 
     for review in new_reviews:
         try:
+            content = (
+                review.get("original_text")
+                or review.get("text")
+                or ""
+            )
+
+            source_language = (
+                review.get("original_language_code")
+                or review.get("language_code")
+            )
+
+            translated_content = None
+
+            try:
+                translated_content = translate_to_spanish(
+                    content,
+                    source_language=source_language,
+                )
+            except GoogleTranslateError:
+                translated_content = None
+
             evidence = create_review_evidence(
                 business_id=business_id,
                 source="google_places",
@@ -105,7 +130,8 @@ def sync_google_reviews(business_id):
                     review.get("author") or {}
                 ).get("display_name"),
                 rating=review.get("rating"),
-                content=review.get("text") or "",
+                content=content,
+                translated_content=translated_content,
                 published_at=_parse_publish_time(
                     review.get("publish_time")
                 ),
@@ -117,7 +143,7 @@ def sync_google_reviews(business_id):
             attribute_review_by_waiter_names(
                 business_id=business_id,
                 review_evidence_id=evidence[0],
-                content=review.get("text") or "",
+                content=content,
             )
 
             imported += 1

@@ -147,6 +147,7 @@ CREATE TABLE review_evidence (
     reviewer_name VARCHAR(150),
     rating INTEGER,
     content TEXT NOT NULL,
+    translated_content TEXT,
     fingerprint VARCHAR(64),
     published_at TIMESTAMPTZ,
     source_url TEXT,
