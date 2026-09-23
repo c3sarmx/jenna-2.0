@@ -29,6 +29,9 @@ from app.services.review_evidence import (
     create_review_evidence,
     get_review_evidence_by_business,
 )
+from app.services.review_auto_attribution import (
+    attribute_review_by_waiter_names,
+)
 
 
 def extract_place_id(google_review_url):
@@ -94,7 +97,7 @@ def sync_google_reviews(business_id):
 
     for review in new_reviews:
         try:
-            create_review_evidence(
+            evidence = create_review_evidence(
                 business_id=business_id,
                 source="google_places",
                 external_id=review["id"],
@@ -109,6 +112,12 @@ def sync_google_reviews(business_id):
                 source_url=review.get(
                     "google_maps_uri"
                 ),
+            )
+
+            attribute_review_by_waiter_names(
+                business_id=business_id,
+                review_evidence_id=evidence[0],
+                content=review.get("text") or "",
             )
 
             imported += 1
