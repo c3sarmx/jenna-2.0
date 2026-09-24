@@ -19,6 +19,12 @@ def test_sync_all_google_reviews_syncs_all_businesses():
             {"imported": 2},
             {"imported": 3},
         ],
+    ), patch(
+        "app.jobs.google_reviews.backfill_review_translations",
+        side_effect=[
+            {"translated": 5, "skipped": 0},
+            {"translated": 2, "skipped": 1},
+        ],
     ):
         results = sync_all_google_reviews()
 
@@ -27,11 +33,13 @@ def test_sync_all_google_reviews_syncs_all_businesses():
     assert results[0]["business_name"] == "Dukkah"
     assert results[0]["status"] == "ok"
     assert results[0]["result"]["imported"] == 2
+    assert results[0]["result"]["translation_backfill"]["translated"] == 5
 
     assert results[1]["business_id"] == 2
     assert results[1]["business_name"] == "Olivia Café"
     assert results[1]["status"] == "ok"
     assert results[1]["result"]["imported"] == 3
+    assert results[1]["result"]["translation_backfill"]["translated"] == 2
 
 
 def test_sync_all_google_reviews_continues_after_business_error():
@@ -49,6 +57,9 @@ def test_sync_all_google_reviews_continues_after_business_error():
             RuntimeError("Google API failed"),
             {"imported": 3},
         ],
+    ), patch(
+        "app.jobs.google_reviews.backfill_review_translations",
+        return_value={"translated": 2, "skipped": 0},
     ):
         results = sync_all_google_reviews()
 

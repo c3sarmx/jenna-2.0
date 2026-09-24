@@ -1,3 +1,4 @@
+from datetime import datetime
 from unittest.mock import patch
 
 import pytest
@@ -340,4 +341,70 @@ def test_sync_google_reviews_saves_spanish_translation(
     assert row == (
         "Great service and amazing coffee.",
         "Excelente servicio y café increíble.",
+    )
+
+
+
+def test_backfill_review_translations_updates_missing_translations(
+    test_database_url,
+    monkeypatch,
+    clean_database,
+):
+    monkeypatch.setenv(
+        "DATABASE_URL",
+        test_database_url,
+    )
+
+    from app.services.businesses import create_business
+    from app.services.google_review_observer import (
+        backfill_review_translations,
+    )
+    from app.services.review_evidence import (
+        create_review_evidence,
+        get_review_evidence_by_business,
+    )
+
+    business = create_business(
+        name="Backfill Café",
+        google_review_url=(
+            "https://search.google.com/local/writereview"
+            "?placeid=PLACE123"
+        ),
+    )
+
+    evidence = create_review_evidence(
+        business_id=business[0],
+        source="google_places",
+        external_id="google-review-backfill",
+        reviewer_name="John Smith",
+        rating=5,
+        content="Great service and amazing coffee.",
+        published_at=datetime.fromisoformat(
+            "2026-09-22T17:00:00+00:00"
+        ),
+        source_url="https://google.com/review/backfill",
+    )
+
+    with patch(
+        "app.services.google_review_observer.translate_to_spanish",
+        return_value="Excelente servicio y café increíble.",
+    ) as translate_mock:
+        result = backfill_review_translations(
+            business[0]
+        )
+
+    assert result["translated"] == 1
+    assert result["skipped"] == 0
+
+    translate_mock.assert_called_once_with(
+        "Great service and amazing coffee.",
+    )
+
+    stored_evidence = get_review_evidence_by_business(
+        business[0]
+    )
+
+    assert stored_evidence[0][0] == evidence[0]
+    assert stored_evidence[0][11] == (
+        "Excelente servicio y café increíble."
     )

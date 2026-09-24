@@ -69,6 +69,65 @@ def _parse_publish_time(value):
     return datetime.fromisoformat(value)
 
 
+def backfill_review_translations(business_id):
+    existing_evidence = get_review_evidence_by_business(
+        business_id
+    )
+
+    translated = 0
+    skipped = 0
+
+    from app.database.connection import get_connection
+
+    conn = get_connection()
+
+    try:
+        for item in existing_evidence:
+            review_id = item[0]
+            content = item[6]
+            translated_content = item[11]
+
+            if (
+                item[2] != "google_places"
+                or translated_content
+                or not content
+            ):
+                skipped += 1
+                continue
+
+            try:
+                translated_text = translate_to_spanish(
+                    content,
+                )
+            except GoogleTranslateError:
+                skipped += 1
+                continue
+
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    UPDATE review_evidence
+                    SET translated_content = %s
+                    WHERE id = %s
+                      AND translated_content IS NULL;
+                    """,
+                    (translated_text, review_id),
+                )
+
+                if cur.rowcount:
+                    translated += 1
+
+        conn.commit()
+    finally:
+        conn.close()
+
+    return {
+        "business_id": business_id,
+        "translated": translated,
+        "skipped": skipped,
+    }
+
+
 def sync_google_reviews(business_id):
     business = get_business_by_id(business_id)
 
