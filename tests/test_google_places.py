@@ -15,31 +15,21 @@ PLACE_ID = "ChIJ1_fSGAD_0YURIFxtKjfW4r0"
 
 def _google_response():
     return {
-        "reviews": [
-            {
-                "name": (
-                    "places/PLACE/reviews/REVIEW_1"
-                ),
-                "relativePublishTimeDescription": "3 weeks ago",
-                "rating": 5,
-                "text": {
+        "status": "OK",
+        "result": {
+            "reviews": [
+                {
+                    "author_name": "Andrea Cagle Villegas",
+                    "author_url": "https://example.com/author",
+                    "profile_photo_url": "https://example.com/photo",
+                    "language": "en",
+                    "rating": 5,
+                    "relative_time_description": "3 weeks ago",
                     "text": "Veronica was amazing.",
-                    "languageCode": "en",
-                },
-                "originalText": {
-                    "text": "Veronica was amazing.",
-                    "languageCode": "en",
-                },
-                "authorAttribution": {
-                    "displayName": "Andrea Cagle Villegas",
-                    "uri": "https://example.com/author",
-                    "photoUri": "https://example.com/photo",
-                },
-                "publishTime": "2026-08-30T16:01:12Z",
-                "flagContentUri": "https://example.com/report",
-                "googleMapsUri": "https://example.com/review",
-            }
-        ]
+                    "time": 1788105672,
+                }
+            ]
+        },
     }
 
 
@@ -59,7 +49,7 @@ class FakeResponse:
 
 def test_get_place_reviews_returns_normalized_reviews(monkeypatch):
     monkeypatch.setenv(
-        "GOOGLE_PLACES_API_KEY",
+        "GOOGLE_PLACES_LEGACY_API_KEY",
         "test-api-key",
     )
 
@@ -73,47 +63,49 @@ def test_get_place_reviews_returns_normalized_reviews(monkeypatch):
 
     review = reviews[0]
 
-    assert review["id"] == "places/PLACE/reviews/REVIEW_1"
+    assert len(review["id"]) == 64
+    assert all(
+        character in "0123456789abcdef"
+        for character in review["id"]
+    )
     assert review["rating"] == 5
     assert review["text"] == "Veronica was amazing."
     assert review["language_code"] == "en"
     assert review["publish_time"] == (
-        "2026-08-30T16:01:12Z"
+        "2026-08-30T16:01:12+00:00"
     )
 
     assert review["author"]["display_name"] == (
         "Andrea Cagle Villegas"
     )
 
-    assert review["google_maps_uri"] == (
-        "https://example.com/review"
-    )
+    assert review["google_maps_uri"] is None
 
     request = mock_urlopen.call_args.args[0]
 
-    assert request.full_url == (
-        "https://places.googleapis.com/v1/places/"
-        f"{PLACE_ID}"
+    assert request.full_url.startswith(
+        "https://maps.googleapis.com/maps/api/place/details/json?"
     )
 
-    assert request.get_header("X-goog-api-key") == (
-        "test-api-key"
-    )
-
-    assert request.get_header("X-goog-fieldmask") == (
-        "reviews"
-    )
+    assert f"place_id={PLACE_ID}" in request.full_url
+    assert "fields=reviews" in request.full_url
+    assert "reviews_sort=newest" in request.full_url
+    assert "reviews_no_translations=true" in request.full_url
+    assert "key=test-api-key" in request.full_url
 
 
 def test_get_place_reviews_returns_empty_list_when_reviews_missing(
     monkeypatch,
 ):
     monkeypatch.setenv(
-        "GOOGLE_PLACES_API_KEY",
+        "GOOGLE_PLACES_LEGACY_API_KEY",
         "test-api-key",
     )
 
-    response = FakeResponse({})
+    response = FakeResponse({
+        "status": "OK",
+        "result": {},
+    })
 
     with patch(
         "app.services.google_places.urlopen",
@@ -131,12 +123,12 @@ def test_get_place_reviews_requires_place_id():
 
 def test_get_place_reviews_requires_api_key(monkeypatch):
     monkeypatch.delenv(
-        "GOOGLE_PLACES_API_KEY",
+        "GOOGLE_PLACES_LEGACY_API_KEY",
         raising=False,
     )
 
     with pytest.raises(
         GooglePlacesError,
-        match="GOOGLE_PLACES_API_KEY",
+        match="GOOGLE_PLACES_LEGACY_API_KEY",
     ):
         get_place_reviews(PLACE_ID)

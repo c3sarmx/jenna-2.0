@@ -108,6 +108,12 @@ CREATE TABLE business_settings (
     business_id BIGINT NOT NULL
         REFERENCES businesses(id) ON DELETE CASCADE,
     weekly_reviews_per_waiter INTEGER,
+    review_sync_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+    review_sync_interval_minutes INTEGER NOT NULL DEFAULT 5,
+    review_sync_timezone VARCHAR(100) NOT NULL
+        DEFAULT 'America/Mexico_City',
+    review_sync_schedule JSONB NOT NULL DEFAULT '{}'::jsonb,
+    review_sync_last_run_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
@@ -118,6 +124,11 @@ CREATE TABLE business_settings (
         CHECK (
             weekly_reviews_per_waiter IS NULL
             OR weekly_reviews_per_waiter >= 0
+        ),
+
+    CONSTRAINT business_settings_sync_interval_check
+        CHECK (
+            review_sync_interval_minutes > 0
         )
 );
 

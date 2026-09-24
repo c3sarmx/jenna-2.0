@@ -1,8 +1,48 @@
 import os
+from pathlib import Path
 
 import psycopg
 import pytest
 from dotenv import load_dotenv
+
+
+@pytest.fixture(scope="session", autouse=True)
+def initialize_test_database():
+    load_dotenv(".env")
+
+    database_url = os.environ["DATABASE_URL"]
+    test_database_url = (
+        database_url.rsplit("/", 1)[0]
+        + "/dukkah_2_test"
+    )
+
+    schema_path = (
+        Path(__file__).resolve().parents[1]
+        / "app"
+        / "database"
+        / "schema.sql"
+    )
+
+    schema_sql = schema_path.read_text()
+
+    conn = psycopg.connect(test_database_url)
+
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "DROP SCHEMA public CASCADE;"
+            )
+            cur.execute(
+                "CREATE SCHEMA public;"
+            )
+            cur.execute(schema_sql)
+
+        conn.commit()
+        yield
+
+    finally:
+        conn.close()
+
 
 
 @pytest.fixture
