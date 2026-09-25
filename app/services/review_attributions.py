@@ -125,3 +125,70 @@ def get_review_attributions_by_business(business_id):
 
     finally:
         conn.close()
+
+
+def get_review_attribution_evidence(
+    business_id,
+    waiter_id=None,
+    date_from=None,
+    date_to=None,
+):
+    conn = get_connection()
+
+    try:
+        with conn.cursor() as cur:
+            query = """
+                SELECT
+                    ra.id,
+                    ra.review_evidence_id,
+                    ra.waiter_id,
+                    w.name,
+                    ra.method,
+                    ra.confidence,
+                    ra.reason,
+                    re.reviewer_name,
+                    re.rating,
+                    re.content,
+                    re.translated_content,
+                    re.published_at,
+                    re.source,
+                    re.source_url
+                FROM review_attributions AS ra
+                INNER JOIN review_evidence AS re
+                    ON re.id = ra.review_evidence_id
+                INNER JOIN waiters AS w
+                    ON w.id = ra.waiter_id
+                WHERE re.business_id = %s
+            """
+
+            params = [business_id]
+
+            if waiter_id is not None:
+                query += """
+                    AND ra.waiter_id = %s
+                """
+                params.append(waiter_id)
+
+            if date_from is not None:
+                query += """
+                    AND re.published_at::date >= %s
+                """
+                params.append(date_from)
+
+            if date_to is not None:
+                query += """
+                    AND re.published_at::date <= %s
+                """
+                params.append(date_to)
+
+            query += """
+                ORDER BY re.published_at DESC NULLS LAST,
+                         ra.id DESC;
+            """
+
+            cur.execute(query, params)
+
+            return cur.fetchall()
+
+    finally:
+        conn.close()

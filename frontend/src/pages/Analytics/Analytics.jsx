@@ -5,6 +5,7 @@ import ErrorState from "../../components/ErrorState/ErrorState";
 import {
   getAnalytics,
   getBusinessWeeklyAnalytics,
+  getReviewAttributionEvidence,
 } from "../../services/api";
 import "./Analytics.css";
 
@@ -59,6 +60,13 @@ function formatWeekRange(weekStart, weekEnd) {
   return `${formatter.format(start)} — ${formatter.format(end)}`;
 }
 
+function addDaysToDate(dateString, days) {
+  const date = new Date(`${dateString}T00:00:00`);
+  date.setDate(date.getDate() + days);
+
+  return formatDateInput(date);
+}
+
 function Analytics({ business }) {
   const [analytics, setAnalytics] = useState(null);
   const [weeklyAnalytics, setWeeklyAnalytics] = useState(null);
@@ -66,9 +74,23 @@ function Analytics({ business }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [retryKey, setRetryKey] = useState(0);
+  const [selectedEvidence, setSelectedEvidence] = useState(null);
+  const [selectedEvidencePeriod, setSelectedEvidencePeriod] = useState(null);
+  const [evidenceLoading, setEvidenceLoading] = useState(false);
+  const [evidenceError, setEvidenceError] = useState(null);
 
   const selectedPeriod =
     PERIODS.find((item) => item.value === period) ?? PERIODS[2];
+
+  const WEEK_DAYS = [
+    ["monday", 0],
+    ["tuesday", 1],
+    ["wednesday", 2],
+    ["thursday", 3],
+    ["friday", 4],
+    ["saturday", 5],
+    ["sunday", 6],
+  ];
 
   useEffect(() => {
     async function loadAnalytics() {
@@ -105,6 +127,39 @@ function Analytics({ business }) {
 
   function handlePeriodChange(event) {
     setPeriod(event.target.value);
+  }
+
+  async function handleEvidenceClick(
+    waiterId,
+    dateFrom,
+    dateTo,
+    periodType = "day"
+  ) {
+    try {
+      setEvidenceLoading(true);
+      setSelectedEvidence([]);
+      setSelectedEvidencePeriod({
+        type: periodType,
+        dateFrom,
+        dateTo,
+      });
+      setEvidenceError(null);
+
+      const evidence = await getReviewAttributionEvidence(
+        business.id,
+        {
+          waiterId,
+          dateFrom,
+          dateTo,
+        }
+      );
+
+      setSelectedEvidence(evidence);
+    } catch (requestError) {
+      setEvidenceError(requestError);
+    } finally {
+      setEvidenceLoading(false);
+    }
   }
 
   if (loading) {
@@ -164,6 +219,8 @@ function Analytics({ business }) {
   const waiterRanking = [...analytics.taps_by_waiter].sort(
     (a, b) => b.total_taps - a.total_taps
   );
+
+  const selectedEvidenceCount = selectedEvidence?.length ?? 0;
 
   return (
     <div className="analytics">
@@ -394,16 +451,57 @@ function Analytics({ business }) {
                   <tr key={waiter.waiter_id}>
                     <th scope="row">{waiter.waiter_name}</th>
 
-                    <td>{waiter.daily.monday}</td>
-                    <td>{waiter.daily.tuesday}</td>
-                    <td>{waiter.daily.wednesday}</td>
-                    <td>{waiter.daily.thursday}</td>
-                    <td>{waiter.daily.friday}</td>
-                    <td>{waiter.daily.saturday}</td>
-                    <td>{waiter.daily.sunday}</td>
+                    {WEEK_DAYS.map(([day, offset]) => {
+                      const count = waiter.daily[day];
+
+                      if (count === 0) {
+                        return <td key={day}>0</td>;
+                      }
+
+                      const date = addDaysToDate(
+                        weeklyAnalytics.week_start,
+                        offset
+                      );
+
+                      return (
+                        <td key={day}>
+                          <button
+                            type="button"
+                            className="weekly-review-link"
+                            onClick={() =>
+                              handleEvidenceClick(
+                                waiter.waiter_id,
+                                date,
+                                date,
+                                "day"
+                              )
+                            }
+                          >
+                            {count}
+                          </button>
+                        </td>
+                      );
+                    })}
 
                     <td className="weekly-review-total">
-                      {waiter.total}
+                      {waiter.total === 0 ? (
+                        0
+                      ) : (
+                        <button
+                          type="button"
+                          className="weekly-review-link"
+                          onClick={() =>
+                            handleEvidenceClick(
+                              waiter.waiter_id,
+                              weeklyAnalytics.week_start,
+                              weeklyAnalytics.week_end,
+                              "week"
+                            )
+                          }
+                        >
+                          {waiter.total}
+                        </button>
+                      )}
                     </td>
 
                     <td className="weekly-review-reach">
@@ -474,7 +572,166 @@ function Analytics({ business }) {
           )}
         </div>
       </section>
-    </div>
+      {selectedEvidence !== null && (
+        <div
+          className="review-evidence-overlay"
+          role="presentation"
+          onClick={() => setSelectedEvidence(null)}
+        >
+          <section
+            className="review-evidence-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Evidencia de reviews"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="review-evidence-header">
+              <div>
+                <p className="review-evidence-eyebrow">EVIDENCIA</p>
+                <h2>
+                  {selectedEvidence?.[0]?.waiter_name || "Mesero"}
+                </h2>
+                <p>
+                  {evidenceLoading ? (
+                    "Cargando evidencia..."
+                  ) : (
+                    <>
+                      {selectedEvidenceCount}{" "}
+                      {selectedEvidenceCount === 1
+                        ? "review atribuida"
+                        : "reviews atribuidas"}
+
+                      {selectedEvidencePeriod?.type === "week" ? (
+                        <>
+                          {" · semana del "}
+                          {new Date(
+                            `${selectedEvidencePeriod.dateFrom}T00:00:00`
+                          ).toLocaleDateString("es-MX", {
+                            day: "numeric",
+                            month: "short",
+                          })}
+                          {" al "}
+                          {new Date(
+                            `${selectedEvidencePeriod.dateTo}T00:00:00`
+                          ).toLocaleDateString("es-MX", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                        </>
+                      ) : selectedEvidence?.[0]?.published_at ? (
+                        <>
+                          {" · "}
+                          {new Date(
+                            selectedEvidence[0].published_at
+                          ).toLocaleDateString("es-MX", {
+                            weekday: "long",
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                        </>
+                      ) : null}
+                    </>
+                  )}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                className="review-evidence-close"
+                onClick={() => setSelectedEvidence(null)}
+                aria-label="Cerrar"
+              >
+                ×
+              </button>
+            </div>
+
+            {evidenceLoading && (
+              <div className="review-evidence-state">
+                Cargando evidencia...
+              </div>
+            )}
+
+            {!evidenceLoading && evidenceError && (
+              <div className="review-evidence-state review-evidence-error">
+                No fue posible cargar la evidencia.
+              </div>
+            )}
+
+            {!evidenceLoading &&
+              !evidenceError &&
+              selectedEvidenceCount === 0 && (
+                <div className="review-evidence-state">
+                  No hay evidencia disponible para este periodo.
+                </div>
+              )}
+
+            {!evidenceLoading &&
+              !evidenceError &&
+              selectedEvidenceCount > 0 && (
+                <div className="review-evidence-list">
+                  {selectedEvidence.map((review) => (
+                    <article
+                      key={review.id}
+                      className="review-evidence-card"
+                    >
+                      <div className="review-evidence-card-header">
+                        <div>
+                          <strong>
+                            {review.reviewer_name || "Cliente"}
+                          </strong>
+                          <span>
+                            {review.published_at
+                              ? new Date(
+                                  review.published_at
+                                ).toLocaleDateString("es-MX", {
+                                  day: "numeric",
+                                  month: "short",
+                                  year: "numeric",
+                                })
+                              : "Fecha no disponible"}
+                          </span>
+                        </div>
+
+                        <span className="review-evidence-rating">
+                          {"★".repeat(review.rating || 0)}
+                        </span>
+                      </div>
+
+                      <p className="review-evidence-content">
+                        {review.translated_content || review.content}
+                      </p>
+
+                      <div className="review-evidence-meta">
+                        <span>
+                          Confianza:{" "}
+                          {review.confidence === "high"
+                            ? "Alta"
+                            : review.confidence === "medium"
+                              ? "Media"
+                              : review.confidence === "low"
+                                ? "Baja"
+                                : "No disponible"}
+                        </span>
+                        <span>
+                          Criterio:{" "}
+                          {review.method === "name_match"
+                            ? "Nombre mencionado en la reseña"
+                            : review.method === "manual"
+                              ? "Confirmación manual"
+                              : review.method || "No disponible"}
+                        </span>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              )}
+          </section>
+        </div>
+      )}
+
+      </div>
   );
 }
 

@@ -4,6 +4,7 @@ from app.auth.decorators import require_business_access
 from app.services.review_attributions import (
     create_review_attribution,
     get_review_attributions_by_business,
+    get_review_attribution_evidence,
 )
 
 
@@ -111,4 +112,45 @@ def get_review_attributions_route(business_id):
             "created_at": attribution[6].isoformat(),
         }
         for attribution in attributions
+    ]), 200
+
+
+@review_attributions_bp.get(
+    "/businesses/<int:business_id>/review-attributions/evidence"
+)
+@require_business_access
+def get_review_attribution_evidence_route(business_id):
+    waiter_id = request.args.get("waiter_id", type=int)
+    date_from = request.args.get("date_from")
+    date_to = request.args.get("date_to")
+
+    evidence = get_review_attribution_evidence(
+        business_id=business_id,
+        waiter_id=waiter_id,
+        date_from=date_from,
+        date_to=date_to,
+    )
+
+    return jsonify([
+        {
+            "id": item[0],
+            "review_evidence_id": item[1],
+            "waiter_id": item[2],
+            "waiter_name": item[3],
+            "method": item[4],
+            "confidence": item[5],
+            "reason": item[6],
+            "reviewer_name": item[7],
+            "rating": item[8],
+            "content": item[9],
+            "translated_content": item[10],
+            "published_at": (
+                item[11].isoformat()
+                if item[11]
+                else None
+            ),
+            "source": item[12],
+            "source_url": item[13],
+        }
+        for item in evidence
     ]), 200

@@ -342,3 +342,113 @@ def test_create_review_attribution_maps_duplicate_to_conflict():
     assert response.get_json() == {
         "error": "review attribution already exists"
     }
+
+
+def test_get_review_attribution_evidence_requires_authentication():
+    client = make_app().test_client()
+
+    response = client.get(
+        "/api/businesses/4/review-attributions/evidence"
+    )
+
+    assert response.status_code == 401
+
+
+def test_get_review_attribution_evidence_success():
+    client = make_app().test_client()
+    login_session(client)
+
+    evidence = [
+        (
+            1,
+            10,
+            2,
+            "César",
+            "name_match",
+            "high",
+            "La reseña menciona explícitamente el nombre César.",
+            "Ana Adams",
+            5,
+            "Excelente atención de César.",
+            "Excelente atención de César.",
+            datetime(2026, 9, 10, 21, 0),
+            "manual_import",
+            None,
+        ),
+    ]
+
+    with patch(
+        "app.auth.decorators.user_has_business_access",
+        return_value=True,
+    ), patch(
+        "app.routes.review_attributions.get_review_attribution_evidence",
+        return_value=evidence,
+    ) as mock_service:
+        response = client.get(
+            "/api/businesses/4/review-attributions/evidence"
+        )
+
+    assert response.status_code == 200
+
+    body = response.get_json()
+
+    assert len(body) == 1
+
+    assert body[0]["id"] == 1
+    assert body[0]["review_evidence_id"] == 10
+    assert body[0]["waiter_id"] == 2
+    assert body[0]["waiter_name"] == "César"
+    assert body[0]["method"] == "name_match"
+    assert body[0]["confidence"] == "high"
+    assert body[0]["reason"] == (
+        "La reseña menciona explícitamente el nombre César."
+    )
+    assert body[0]["reviewer_name"] == "Ana Adams"
+    assert body[0]["rating"] == 5
+    assert body[0]["content"] == (
+        "Excelente atención de César."
+    )
+    assert body[0]["translated_content"] == (
+        "Excelente atención de César."
+    )
+    assert body[0]["published_at"] == (
+        "2026-09-10T21:00:00"
+    )
+    assert body[0]["source"] == "manual_import"
+    assert body[0]["source_url"] is None
+
+    mock_service.assert_called_once_with(
+        business_id=4,
+        waiter_id=None,
+        date_from=None,
+        date_to=None,
+    )
+
+
+def test_get_review_attribution_evidence_passes_filters():
+    client = make_app().test_client()
+    login_session(client)
+
+    with patch(
+        "app.auth.decorators.user_has_business_access",
+        return_value=True,
+    ), patch(
+        "app.routes.review_attributions.get_review_attribution_evidence",
+        return_value=[],
+    ) as mock_service:
+        response = client.get(
+            "/api/businesses/4/review-attributions/evidence"
+            "?waiter_id=2"
+            "&date_from=2026-09-07"
+            "&date_to=2026-09-13"
+        )
+
+    assert response.status_code == 200
+    assert response.get_json() == []
+
+    mock_service.assert_called_once_with(
+        business_id=4,
+        waiter_id=2,
+        date_from="2026-09-07",
+        date_to="2026-09-13",
+    )

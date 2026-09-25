@@ -2,17 +2,53 @@ import { useEffect, useState } from "react";
 import {
   getBusinessSettings,
   updateBusinessSettings,
+  updateReviewSyncSettings,
 } from "../../services/api";
 import ErrorState from "../../components/ErrorState/ErrorState";
 import "./Settings.css";
 
+const DEFAULT_SCHEDULE = {
+  mon: { start: "08:00", end: "22:00" },
+  tue: { start: "08:00", end: "22:00" },
+  wed: { start: "08:00", end: "22:00" },
+  thu: { start: "08:00", end: "22:00" },
+  fri: { start: "08:00", end: "23:00" },
+  sat: { start: "08:00", end: "23:00" },
+  sun: { start: "08:00", end: "20:00" },
+};
+
+const DAYS = [
+  ["mon", "Lunes"],
+  ["tue", "Martes"],
+  ["wed", "Miércoles"],
+  ["thu", "Jueves"],
+  ["fri", "Viernes"],
+  ["sat", "Sábado"],
+  ["sun", "Domingo"],
+];
+
 function Settings({ business }) {
   const [weeklyReviewsPerWaiter, setWeeklyReviewsPerWaiter] = useState("");
+
+  const [reviewSyncEnabled, setReviewSyncEnabled] = useState(true);
+  const [reviewSyncInterval, setReviewSyncInterval] = useState("5");
+  const [reviewSyncTimezone, setReviewSyncTimezone] = useState(
+    "America/Mexico_City"
+  );
+  const [reviewSyncSchedule, setReviewSyncSchedule] = useState(
+    DEFAULT_SCHEDULE
+  );
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [savingSync, setSavingSync] = useState(false);
+
   const [error, setError] = useState(null);
   const [actionError, setActionError] = useState(null);
+  const [syncError, setSyncError] = useState(null);
+
   const [saved, setSaved] = useState(false);
+  const [syncSaved, setSyncSaved] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -33,6 +69,25 @@ function Settings({ business }) {
             ? ""
             : String(data.weekly_reviews_per_waiter)
         );
+
+        if (data.review_sync) {
+          setReviewSyncEnabled(Boolean(data.review_sync.enabled));
+
+          setReviewSyncInterval(
+            data.review_sync.interval_minutes == null
+              ? "5"
+              : String(data.review_sync.interval_minutes)
+          );
+
+          setReviewSyncTimezone(
+            data.review_sync.timezone || "America/Mexico_City"
+          );
+
+          setReviewSyncSchedule({
+            ...DEFAULT_SCHEDULE,
+            ...(data.review_sync.schedule || {}),
+          });
+        }
       } catch (requestError) {
         if (!cancelled) {
           setError(requestError);
@@ -95,6 +150,68 @@ function Settings({ business }) {
     }
   }
 
+  function handleScheduleChange(day, field, value) {
+    setSyncSaved(false);
+    setSyncError(null);
+
+    setReviewSyncSchedule((current) => ({
+      ...current,
+      [day]: {
+        ...current[day],
+        [field]: value,
+      },
+    }));
+  }
+
+  async function handleSaveSync() {
+    const interval = Number(reviewSyncInterval);
+
+    if (
+      reviewSyncInterval === "" ||
+      !Number.isInteger(interval) ||
+      interval <= 0
+    ) {
+      setSyncError(
+        "El intervalo debe ser un número entero mayor que 0."
+      );
+      return;
+    }
+
+    try {
+      setSavingSync(true);
+      setSyncError(null);
+      setSyncSaved(false);
+
+      const data = await updateReviewSyncSettings(
+        business.id,
+        {
+          enabled: reviewSyncEnabled,
+          intervalMinutes: interval,
+          timezone: reviewSyncTimezone,
+          schedule: reviewSyncSchedule,
+        }
+      );
+
+      if (data.review_sync) {
+        setReviewSyncEnabled(Boolean(data.review_sync.enabled));
+        setReviewSyncInterval(
+          String(data.review_sync.interval_minutes)
+        );
+        setReviewSyncTimezone(data.review_sync.timezone);
+        setReviewSyncSchedule({
+          ...DEFAULT_SCHEDULE,
+          ...(data.review_sync.schedule || {}),
+        });
+      }
+
+      setSyncSaved(true);
+    } catch (requestError) {
+      setSyncError(requestError);
+    } finally {
+      setSavingSync(false);
+    }
+  }
+
   if (loading) {
     return (
       <div className="settings settings-state">
@@ -125,8 +242,8 @@ function Settings({ business }) {
           </h1>
 
           <p className="settings-intro">
-            Define la meta semanal de reseñas que Dukkah utilizará
-            para medir el rendimiento del equipo.
+            Define las reglas que Dukkah utilizará para medir el
+            rendimiento y mantener actualizada la información de reseñas.
           </p>
         </div>
       </header>
@@ -192,6 +309,167 @@ function Settings({ business }) {
             disabled={saving || weeklyReviewsPerWaiter === ""}
           >
             {saving ? "Guardando..." : "Guardar cambios"}
+          </button>
+        </div>
+      </section>
+
+      <section className="settings-panel settings-sync-panel">
+        <div className="settings-panel-heading">
+          <div>
+            <p className="panel-kicker">Google</p>
+            <h2>Sincronización de reseñas</h2>
+          </div>
+
+          <span>Actualización automática</span>
+        </div>
+
+        <p className="settings-description">
+          Define cuándo Dukkah puede consultar Google para detectar
+          nuevas reseñas. La sincronización respeta este horario y
+          utiliza el intervalo configurado.
+        </p>
+
+        <div className="settings-sync-status">
+          <div>
+            <strong>Sincronización automática</strong>
+            <span>
+              Permite que Dukkah consulte nuevas reseñas automáticamente.
+            </span>
+          </div>
+
+          <label className="settings-toggle">
+            <input
+              type="checkbox"
+              checked={reviewSyncEnabled}
+              onChange={(event) => {
+                setSyncSaved(false);
+                setSyncError(null);
+                setReviewSyncEnabled(event.target.checked);
+              }}
+              disabled={savingSync}
+            />
+            <span />
+          </label>
+        </div>
+
+        <div className="settings-sync-grid">
+          <div className="settings-field">
+            <label htmlFor="review-sync-interval">
+              Intervalo
+            </label>
+
+            <div className="settings-field-inline">
+              <input
+                id="review-sync-interval"
+                type="number"
+                min="1"
+                step="1"
+                value={reviewSyncInterval}
+                onChange={(event) => {
+                  setSyncSaved(false);
+                  setSyncError(null);
+                  setReviewSyncInterval(event.target.value);
+                }}
+                disabled={savingSync}
+              />
+              <span>minutos</span>
+            </div>
+          </div>
+
+          <div className="settings-field">
+            <label htmlFor="review-sync-timezone">
+              Zona horaria
+            </label>
+
+            <input
+              id="review-sync-timezone"
+              type="text"
+              value={reviewSyncTimezone}
+              onChange={(event) => {
+                setSyncSaved(false);
+                setSyncError(null);
+                setReviewSyncTimezone(event.target.value);
+              }}
+              disabled={savingSync}
+            />
+          </div>
+        </div>
+
+        <div className="settings-schedule">
+          <div className="settings-schedule-heading">
+            <div>
+              <strong>Horario de sincronización</strong>
+              <span>
+                Solo se consultarán reseñas dentro de estos horarios.
+              </span>
+            </div>
+          </div>
+
+          <div className="settings-schedule-list">
+            {DAYS.map(([day, label]) => (
+              <div className="settings-schedule-row" key={day}>
+                <strong>{label}</strong>
+
+                <div className="settings-time-range">
+                  <input
+                    type="time"
+                    value={reviewSyncSchedule[day]?.start || ""}
+                    onChange={(event) =>
+                      handleScheduleChange(
+                        day,
+                        "start",
+                        event.target.value
+                      )
+                    }
+                    disabled={savingSync}
+                    aria-label={`${label} inicio`}
+                  />
+
+                  <span>—</span>
+
+                  <input
+                    type="time"
+                    value={reviewSyncSchedule[day]?.end || ""}
+                    onChange={(event) =>
+                      handleScheduleChange(
+                        day,
+                        "end",
+                        event.target.value
+                      )
+                    }
+                    disabled={savingSync}
+                    aria-label={`${label} fin`}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="settings-actions">
+          {syncError && (
+            <p className="settings-action-error">
+              {typeof syncError === "string"
+                ? syncError
+                : "No se pudo guardar la configuración de sincronización."}
+            </p>
+          )}
+
+          {syncSaved && (
+            <p className="settings-saved">
+              Configuración de sincronización guardada.
+            </p>
+          )}
+
+          <button
+            type="button"
+            className="settings-save-button"
+            onClick={handleSaveSync}
+            disabled={savingSync}
+          >
+            {savingSync
+              ? "Guardando..."
+              : "Guardar sincronización"}
           </button>
         </div>
       </section>

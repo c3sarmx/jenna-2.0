@@ -1,8 +1,11 @@
+from datetime import datetime, timezone
+
 import pytest
 
 from app.services.businesses import create_business
 from app.services.review_attributions import (
     create_review_attribution,
+    get_review_attribution_evidence,
     get_review_attributions_by_business,
 )
 from app.services.review_evidence import create_review_evidence
@@ -279,3 +282,208 @@ def test_get_review_attributions_by_business_flow(
     assert attributions[0][3] == "manual"
     assert attributions[0][4] == "confirmed"
     assert attributions[0][5] == "Confirmado por el encargado."
+
+
+def test_get_review_attribution_evidence_flow(
+    test_database_url,
+    monkeypatch,
+    clean_database,
+):
+    monkeypatch.setenv("DATABASE_URL", test_database_url)
+
+    business = create_business(
+        name="Evidence Attribution Café",
+        google_review_url="https://example.com/review",
+    )
+
+    waiter = create_waiter(
+        business_id=business[0],
+        name="César",
+    )
+
+    evidence = create_review_evidence(
+        business_id=business[0],
+        source="manual_import",
+        content="Excelente atención de César.",
+        translated_content="Excelente atención de César.",
+        reviewer_name="Juan Pérez",
+        rating=5,
+        published_at=datetime(
+            2026,
+            9,
+            10,
+            21,
+            0,
+        ),
+        source_url="https://example.com/review/1",
+    )
+
+    create_review_attribution(
+        business_id=business[0],
+        review_evidence_id=evidence[0],
+        waiter_id=waiter[0],
+        method="name_match",
+        confidence="high",
+        reason="La reseña menciona explícitamente el nombre César.",
+    )
+
+    from app.services.review_attributions import (
+        get_review_attribution_evidence,
+    )
+
+    result = get_review_attribution_evidence(
+        business_id=business[0],
+    )
+
+    assert len(result) == 1
+
+    item = result[0]
+
+    assert item[0] == 1
+    assert item[1] == evidence[0]
+    assert item[2] == waiter[0]
+    assert item[3] == "César"
+    assert item[4] == "name_match"
+    assert item[5] == "high"
+    assert item[6] == (
+        "La reseña menciona explícitamente el nombre César."
+    )
+    assert item[7] == "Juan Pérez"
+    assert item[8] == 5
+    assert item[9] == "Excelente atención de César."
+    assert item[10] == "Excelente atención de César."
+    assert item[11].astimezone(timezone.utc).isoformat() == (
+        "2026-09-11T03:00:00+00:00"
+    )
+    assert item[12] == "manual_import"
+    assert item[13] == "https://example.com/review/1"
+
+
+def test_get_review_attribution_evidence_filters_by_waiter(
+    test_database_url,
+    monkeypatch,
+    clean_database,
+):
+    monkeypatch.setenv("DATABASE_URL", test_database_url)
+
+    business = create_business(
+        name="Waiter Filter Café",
+        google_review_url="https://example.com/review",
+    )
+
+    waiter_a = create_waiter(
+        business_id=business[0],
+        name="César",
+    )
+
+    waiter_b = create_waiter(
+        business_id=business[0],
+        name="Aaron",
+    )
+
+    evidence_a = create_review_evidence(
+        business_id=business[0],
+        source="manual_import",
+        content="Excelente atención de César.",
+        reviewer_name="Cliente A",
+        published_at=datetime(2026, 9, 10, 20, 0),
+    )
+
+    evidence_b = create_review_evidence(
+        business_id=business[0],
+        source="manual_import",
+        content="Excelente atención de Aaron.",
+        reviewer_name="Cliente B",
+        published_at=datetime(2026, 9, 11, 20, 0),
+    )
+
+    create_review_attribution(
+        business_id=business[0],
+        review_evidence_id=evidence_a[0],
+        waiter_id=waiter_a[0],
+        method="name_match",
+        confidence="high",
+    )
+
+    create_review_attribution(
+        business_id=business[0],
+        review_evidence_id=evidence_b[0],
+        waiter_id=waiter_b[0],
+        method="name_match",
+        confidence="high",
+    )
+
+    result = get_review_attribution_evidence(
+        business_id=business[0],
+        waiter_id=waiter_a[0],
+    )
+
+    assert len(result) == 1
+    assert result[0][1] == evidence_a[0]
+    assert result[0][2] == waiter_a[0]
+    assert result[0][3] == "César"
+
+
+def test_get_review_attribution_evidence_filters_by_date_range(
+    test_database_url,
+    monkeypatch,
+    clean_database,
+):
+    monkeypatch.setenv("DATABASE_URL", test_database_url)
+
+    business = create_business(
+        name="Date Filter Café",
+        google_review_url="https://example.com/review",
+    )
+
+    waiter = create_waiter(
+        business_id=business[0],
+        name="César",
+    )
+
+    evidence_before = create_review_evidence(
+        business_id=business[0],
+        source="manual_import",
+        content="Review anterior.",
+        reviewer_name="Cliente Antes",
+        published_at=datetime(2026, 9, 20, 20, 0),
+    )
+
+    evidence_inside = create_review_evidence(
+        business_id=business[0],
+        source="manual_import",
+        content="Review dentro de la semana.",
+        reviewer_name="Cliente Dentro",
+        published_at=datetime(2026, 9, 23, 20, 0),
+    )
+
+    evidence_after = create_review_evidence(
+        business_id=business[0],
+        source="manual_import",
+        content="Review posterior.",
+        reviewer_name="Cliente Después",
+        published_at=datetime(2026, 9, 28, 20, 0),
+    )
+
+    for evidence in (
+        evidence_before,
+        evidence_inside,
+        evidence_after,
+    ):
+        create_review_attribution(
+            business_id=business[0],
+            review_evidence_id=evidence[0],
+            waiter_id=waiter[0],
+            method="name_match",
+            confidence="high",
+        )
+
+    result = get_review_attribution_evidence(
+        business_id=business[0],
+        date_from="2026-09-21",
+        date_to="2026-09-27",
+    )
+
+    assert len(result) == 1
+    assert result[0][1] == evidence_inside[0]
+    assert result[0][7] == "Cliente Dentro"

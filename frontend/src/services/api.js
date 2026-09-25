@@ -133,6 +133,29 @@ export async function updateBusinessSettings(
   );
 }
 
+export async function updateReviewSyncSettings(
+  businessId,
+  {
+    enabled,
+    intervalMinutes,
+    timezone,
+    schedule,
+  }
+) {
+  return request(
+    `/businesses/${businessId}/settings/review-sync`,
+    {
+      method: "PUT",
+      body: JSON.stringify({
+        enabled,
+        interval_minutes: intervalMinutes,
+        timezone,
+        schedule,
+      }),
+    }
+  );
+}
+
 export async function getBusinessWeeklyAnalytics(
   businessId,
   weekStart
@@ -143,6 +166,33 @@ export async function getBusinessWeeklyAnalytics(
 
   return request(
     `/businesses/${businessId}/analytics/weekly?${params.toString()}`
+  );
+}
+
+export async function getReviewAttributionEvidence(
+  businessId,
+  { waiterId = null, dateFrom = null, dateTo = null } = {}
+) {
+  const params = new URLSearchParams();
+
+  if (waiterId !== null) {
+    params.set("waiter_id", waiterId);
+  }
+
+  if (dateFrom) {
+    params.set("date_from", dateFrom);
+  }
+
+  if (dateTo) {
+    params.set("date_to", dateTo);
+  }
+
+  const query = params.toString();
+
+  return request(
+    `/businesses/${businessId}/review-attributions/evidence${
+      query ? `?${query}` : ""
+    }`
   );
 }
 
