@@ -171,13 +171,31 @@ def get_review_attribution_evidence(
 
             if date_from is not None:
                 query += """
-                    AND re.published_at::date >= %s
+                    AND (
+                        re.published_at AT TIME ZONE COALESCE(
+                            (
+                                SELECT review_sync_timezone
+                                FROM business_settings
+                                WHERE business_id = re.business_id
+                            ),
+                            'America/Mexico_City'
+                        )
+                    )::date >= %s
                 """
                 params.append(date_from)
 
             if date_to is not None:
                 query += """
-                    AND re.published_at::date <= %s
+                    AND (
+                        re.published_at AT TIME ZONE COALESCE(
+                            (
+                                SELECT review_sync_timezone
+                                FROM business_settings
+                                WHERE business_id = re.business_id
+                            ),
+                            'America/Mexico_City'
+                        )
+                    )::date <= %s
                 """
                 params.append(date_to)
 
