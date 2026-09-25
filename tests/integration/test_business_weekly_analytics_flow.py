@@ -507,3 +507,65 @@ def test_business_weekly_analytics_does_not_use_taps(
 
     assert analytics["waiters"][0]["total"] == 0
     assert analytics["waiters"][0]["reach_percentage"] == 0.0
+
+
+def test_business_weekly_analytics_uses_business_timezone_for_review_date(
+    test_database_url,
+    monkeypatch,
+    clean_database,
+):
+    monkeypatch.setenv("DATABASE_URL", test_database_url)
+
+    business = create_business(
+        name="Timezone Reviews Café",
+        google_review_url="https://example.com/review",
+    )
+
+    business_id = business[0]
+
+    cristian = create_waiter(
+        business_id=business_id,
+        name="Cristian",
+    )
+
+    set_weekly_reviews_per_waiter(
+        business_id=business_id,
+        weekly_reviews_per_waiter=12,
+    )
+
+    # 2026-09-25 00:30 UTC = 2026-09-24 18:30 America/Mexico_City.
+    # The review therefore belongs to Thursday, not Friday.
+    review = create_review(
+        business_id,
+        "Cliente jueves",
+        datetime(2026, 9, 25, 0, 30, tzinfo=timezone.utc),
+    )
+
+    attribute_review(
+        business_id,
+        review[0],
+        cristian[0],
+    )
+
+    analytics = get_business_weekly_analytics(
+        business_id=business_id,
+        week_start="2026-09-21",
+    )
+
+    assert analytics["waiters"] == [
+        {
+            "waiter_id": cristian[0],
+            "waiter_name": "Cristian",
+            "daily": {
+                "monday": 0,
+                "tuesday": 0,
+                "wednesday": 0,
+                "thursday": 1,
+                "friday": 0,
+                "saturday": 0,
+                "sunday": 0,
+            },
+            "total": 1,
+            "reach_percentage": 8.33,
+        }
+    ]

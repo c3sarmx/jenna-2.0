@@ -353,20 +353,37 @@ def get_business_weekly_analytics(business_id, week_start):
                 daily_reviews AS (
                     SELECT
                         ra.waiter_id,
-                        re.published_at::date AS review_date,
+                        (
+                            re.published_at AT TIME ZONE COALESCE(
+                                settings.review_sync_timezone,
+                                'America/Mexico_City'
+                            )
+                        )::date AS review_date,
                         COUNT(DISTINCT re.id) AS review_count
                     FROM review_attributions AS ra
                     INNER JOIN review_evidence AS re
                         ON re.id = ra.review_evidence_id
+                    LEFT JOIN business_settings AS settings
+                        ON settings.business_id = re.business_id
                     INNER JOIN week
-                        ON re.published_at::date
+                        ON (
+                            re.published_at AT TIME ZONE COALESCE(
+                                settings.review_sync_timezone,
+                                'America/Mexico_City'
+                            )
+                        )::date
                             BETWEEN week.week_start
                             AND week.week_end
                     WHERE re.business_id = %s
                       AND re.published_at IS NOT NULL
                     GROUP BY
                         ra.waiter_id,
-                        re.published_at::date
+                        (
+                            re.published_at AT TIME ZONE COALESCE(
+                                settings.review_sync_timezone,
+                                'America/Mexico_City'
+                            )
+                        )::date
                 )
                 SELECT
                     w.id,
