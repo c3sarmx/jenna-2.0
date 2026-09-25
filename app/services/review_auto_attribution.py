@@ -7,6 +7,7 @@ def attribute_review_by_waiter_names(
     business_id,
     review_evidence_id,
     content,
+    translated_content=None,
 ):
     waiters = get_waiters_by_business(business_id)
 
@@ -22,6 +23,7 @@ def attribute_review_by_waiter_names(
     matches = find_waiter_matches(
         content,
         waiter_candidates,
+        translated_content=translated_content,
     )
 
     created = 0

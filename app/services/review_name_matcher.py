@@ -12,22 +12,208 @@ def _normalize_text(value):
         if not unicodedata.combining(char)
     )
 
-    return normalized.casefold()
+    normalized = normalized.casefold()
+
+    return normalized
 
 
-def _name_pattern(name):
-    normalized_name = _normalize_text(name)
+def _normalize_token(value):
+    value = _normalize_text(value)
 
-    escaped_name = re.escape(normalized_name)
+    value = re.sub(r"['’]s\b", "", value)
+    value = re.sub(r"[^a-z0-9]+", "", value)
 
-    return re.compile(
-        rf"(?<!\w){escaped_name}(?!\w)",
-        re.IGNORECASE,
-    )
+    return value
 
 
-def find_waiter_matches(content, waiters):
-    normalized_content = _normalize_text(content)
+def _tokenize(value):
+    normalized = _normalize_text(value)
+
+    return [
+        _normalize_token(token)
+        for token in re.findall(r"[a-z0-9]+", normalized)
+        if _normalize_token(token)
+    ]
+
+
+def _singular_forms(token):
+    forms = {token}
+
+    if token.endswith("s") and len(token) > 3:
+        forms.add(token[:-1])
+
+    return forms
+
+
+def _levenshtein_distance(left, right):
+    if left == right:
+        return 0
+
+    if not left:
+        return len(right)
+
+    if not right:
+        return len(left)
+
+    previous = list(range(len(right) + 1))
+
+    for index_left, char_left in enumerate(left, start=1):
+        current = [index_left]
+
+        for index_right, char_right in enumerate(right, start=1):
+            insertion = current[index_right - 1] + 1
+            deletion = previous[index_right] + 1
+            substitution = previous[index_right - 1] + (
+                char_left != char_right
+            )
+
+            current.append(
+                min(
+                    insertion,
+                    deletion,
+                    substitution,
+                )
+            )
+
+        previous = current
+
+    return previous[-1]
+
+
+def _is_close_token(candidate, expected):
+    if candidate == expected:
+        return True, "exact"
+
+    if candidate in _singular_forms(expected):
+        return True, "variant"
+
+    if expected in _singular_forms(candidate):
+        return True, "variant"
+
+    distance = _levenshtein_distance(candidate, expected)
+
+    if len(expected) <= 4:
+        max_distance = 1
+    elif len(expected) <= 7:
+        max_distance = 1
+    else:
+        max_distance = 2
+
+    if distance <= max_distance:
+        return True, "fuzzy"
+
+    return False, None
+
+
+def _match_name(waiter_name, content, waiters=None):
+    waiter_tokens = _tokenize(waiter_name)
+    content_tokens = _tokenize(content)
+
+    if not waiter_tokens or not content_tokens:
+        return None
+
+    matched_tokens = 0
+    fuzzy_matches = 0
+    matched_expected = []
+    used_content_indexes = set()
+
+    for expected in waiter_tokens:
+        candidates = []
+
+        for index, candidate in enumerate(content_tokens):
+            if index in used_content_indexes:
+                continue
+
+            matched, match_type = _is_close_token(
+                candidate,
+                expected,
+            )
+
+            if matched:
+                priority = {
+                    "exact": 0,
+                    "variant": 1,
+                    "fuzzy": 2,
+                }[match_type]
+
+                candidates.append(
+                    (
+                        priority,
+                        index,
+                        match_type,
+                    )
+                )
+
+        if not candidates:
+            continue
+
+        _, index, match_type = min(candidates)
+
+        used_content_indexes.add(index)
+        matched_tokens += 1
+        matched_expected.append(expected)
+
+        if match_type == "fuzzy":
+            fuzzy_matches += 1
+
+    if len(waiter_tokens) == 1:
+        if matched_tokens != 1:
+            return None
+
+        if fuzzy_matches:
+            return "medium"
+
+        return "high"
+
+    if matched_tokens == len(waiter_tokens):
+        if fuzzy_matches:
+            return "medium"
+
+        return "high"
+
+    # Compound names may be written with one component omitted.
+    # Only allow this when the matched component is distinctive
+    # among the active waiters.
+    if matched_tokens == len(waiter_tokens) - 1:
+        if not matched_expected:
+            return None
+
+        # Do not allow partial matching when a compound name
+        # repeats the same component, e.g. "Jose Jose".
+        if len(set(waiter_tokens)) != len(waiter_tokens):
+            return None
+
+        if not all(len(token) >= 4 for token in matched_expected):
+            return None
+
+        other_names = [
+            waiter["name"]
+            for waiter in waiters or []
+            if waiter.get("name") != waiter_name
+        ]
+
+        for matched_token in matched_expected:
+            for other_name in other_names:
+                other_tokens = _tokenize(other_name)
+
+                if matched_token in other_tokens:
+                    return None
+
+        return "medium"
+
+    return None
+
+
+def find_waiter_matches(
+    content,
+    waiters,
+    translated_content=None,
+):
+    contents = [
+        value
+        for value in (content, translated_content)
+        if value
+    ]
 
     matches = []
 
@@ -38,20 +224,45 @@ def find_waiter_matches(content, waiters):
         if not waiter_name:
             continue
 
-        pattern = _name_pattern(waiter_name)
+        confidences = []
 
-        if not pattern.search(normalized_content):
+        for candidate_content in contents:
+            confidence = _match_name(
+                waiter_name,
+                candidate_content,
+                waiters,
+            )
+
+            if confidence is not None:
+                confidences.append(confidence)
+
+        if not confidences:
             continue
+
+        if "high" in confidences:
+            confidence = "high"
+        else:
+            confidence = "medium"
+
+        if confidence == "high":
+            reason = (
+                "La reseña menciona explícitamente "
+                f"el nombre {waiter_name}."
+            )
+        else:
+            reason = (
+                "La reseña contiene una coincidencia "
+                f"probable con el nombre {waiter_name}, "
+                "considerando variaciones o una posible "
+                "omisión/error de escritura."
+            )
 
         matches.append(
             {
                 "waiter_id": waiter_id,
                 "waiter_name": waiter_name,
-                "confidence": "high",
-                "reason": (
-                    "La reseña menciona explícitamente "
-                    f"el nombre {waiter_name}."
-                ),
+                "confidence": confidence,
+                "reason": reason,
             }
         )
 

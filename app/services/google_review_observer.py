@@ -203,6 +203,7 @@ def sync_google_reviews(business_id):
                 business_id=business_id,
                 review_evidence_id=evidence[0],
                 content=content,
+                translated_content=translated_content,
             )
 
             imported += 1
