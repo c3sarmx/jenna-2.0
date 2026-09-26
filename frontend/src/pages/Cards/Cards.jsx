@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { motion } from "motion/react";
+import { useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import {
   createCard,
   getCards,
@@ -19,6 +19,15 @@ function Cards({ business }) {
   const [actionError, setActionError] = useState(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [selectedWaiter, setSelectedWaiter] = useState("");
+  const [selectedCardId, setSelectedCardId] = useState(null);
+  const selectedCardIdRef = useRef(null);
+  const walletTrackRef = useRef(null);
+  const walletScrollTimeoutRef = useRef(null);
+
+  function selectCard(cardId) {
+    selectedCardIdRef.current = cardId;
+    setSelectedCardId(cardId);
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -230,96 +239,205 @@ function Cards({ business }) {
         </motion.form>
       )}
 
-      <motion.section
-        className="cards-list"
-        initial="hidden"
-        animate="visible"
-        variants={{
-          hidden: {},
-          visible: {
-            transition: {
-              staggerChildren: 0.08,
-            },
-          },
-        }}
-      >
-        {cards.length === 0 ? (
-          <div className="cards-empty">
-            <p>No hay tarjetas registradas.</p>
+      {cards.length === 0 ? (
+        <div className="cards-empty">
+          <p>No hay tarjetas registradas.</p>
 
-            <span>
-              Crea una tarjeta para comenzar.
-            </span>
-          </div>
-        ) : (
-          cards.map((card) => (
-            <motion.article
-              className="card-item"
-              key={card.id}
-              variants={{
-                hidden: {
-                  opacity: 0,
-                  y: 12,
-                },
-                visible: {
-                  opacity: 1,
-                  y: 0,
-                },
-              }}
-              transition={{ duration: 0.4 }}
-            >
-              <div className="card-visual">
-                <span className="card-logo">D</span>
+          <span>
+            Crea una tarjeta para comenzar.
+          </span>
+        </div>
+      ) : (
+        <motion.section
+          className="cards-wallet"
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{
+            duration: 0.55,
+            ease: [0.22, 1, 0.36, 1],
+          }}
+        >
+          <div
+            className="wallet-track"
+            ref={walletTrackRef}
+            aria-label="Tarjetas Dukkah"
+            onScroll={(event) => {
+              const track = event.currentTarget;
 
-                <span className="card-label">
-                  Dukkah
-                </span>
+              if (walletScrollTimeoutRef.current) {
+                clearTimeout(walletScrollTimeoutRef.current);
+              }
 
-                <span className="card-id">
-                  {card.public_id.slice(0, 12)}…
-                </span>
-              </div>
+              walletScrollTimeoutRef.current = setTimeout(() => {
+                const cardsInView = [
+                  ...track.querySelectorAll("[data-wallet-card-id]"),
+                ];
 
-              <div className="card-details">
-                <div>
-                  <p>Mesero</p>
-                  <h2>{card.waiter_name}</h2>
-                </div>
-
-                <div>
-                  <p>Estado</p>
-
-                  <div
-                    className={`card-status ${
-                      card.active
-                        ? "card-status-active"
-                        : ""
-                    }`}
-                  >
-                    <span />
-                    {card.active
-                      ? "Activa"
-                      : "Inactiva"}
-                  </div>
-                </div>
-              </div>
-
-              <button
-                className="card-toggle"
-                type="button"
-                disabled={saving}
-                onClick={() =>
-                  handleToggleCard(card)
+                if (!cardsInView.length) {
+                  return;
                 }
-              >
-                {card.active
-                  ? "Desactivar"
-                  : "Activar"}
-              </button>
-            </motion.article>
-          ))
-        )}
-      </motion.section>
+
+                const trackRect = track.getBoundingClientRect();
+                const center = trackRect.left + trackRect.width / 2;
+
+                let closestCard = null;
+                let closestDistance = Infinity;
+
+                for (const cardElement of cardsInView) {
+                  const rect = cardElement.getBoundingClientRect();
+                  const cardCenter = rect.left + rect.width / 2;
+                  const distance = Math.abs(center - cardCenter);
+
+                  if (distance < closestDistance) {
+                    closestDistance = distance;
+                    closestCard = cardElement;
+                  }
+                }
+
+                const nextCardId = Number(
+                  closestCard?.dataset.walletCardId
+                );
+
+                if (
+                  Number.isFinite(nextCardId) &&
+                  nextCardId !== selectedCardId
+                ) {
+                  selectCard(nextCardId);
+                }
+              }, 180);
+            }}
+          >
+            {cards.map((card) => {
+              const isSelected =
+                card.id ===
+                (selectedCardId ?? cards[0]?.id);
+
+              return (
+                <button
+                  className={`wallet-card ${
+                    isSelected ? "wallet-card-selected" : ""
+                  }`}
+                  data-wallet-card-id={card.id}
+                  key={card.id}
+                  type="button"
+                  onClick={(event) => {
+                    selectCard(card.id);
+
+                    event.currentTarget.scrollIntoView({
+                      behavior: "smooth",
+                      block: "nearest",
+                      inline: "center",
+                    });
+                  }}
+                >
+                  <span className="wallet-card-logo">D</span>
+
+                  <span className="wallet-card-brand">
+                    Dukkah
+                  </span>
+
+                  <span className="wallet-card-waiter">
+                    {card.waiter_name}
+                  </span>
+
+                  <span className="wallet-card-id">
+                    {card.public_id.slice(0, 12)}…
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="wallet-pagination" aria-label="Seleccionar tarjeta">
+            {cards.map((card) => {
+              const isSelected =
+                card.id === (selectedCardId ?? cards[0]?.id);
+
+              return (
+                <button
+                  key={card.id}
+                  type="button"
+                  className={`wallet-dot ${
+                    isSelected ? "wallet-dot-active" : ""
+                  }`}
+                  aria-label={`Seleccionar tarjeta de ${card.waiter_name}`}
+                  aria-current={isSelected ? "true" : undefined}
+                  onClick={() => {
+                    selectCard(card.id);
+
+                    const cardElement = document.querySelector(
+                      `[data-wallet-card-id="${card.id}"]`
+                    );
+
+                    cardElement?.scrollIntoView({
+                      behavior: "smooth",
+                      block: "nearest",
+                      inline: "center",
+                    });
+                  }}
+                />
+              );
+            })}
+          </div>
+
+          {(() => {
+            const selectedCard =
+              cards.find((card) => card.id === selectedCardId) ??
+              cards[0];
+
+            return (
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.div
+                  className="wallet-details"
+                  key={selectedCard.id}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  transition={{
+                    duration: 0.32,
+                    ease: [0.22, 1, 0.36, 1],
+                  }}
+                >
+                  <div>
+                    <p>Mesero</p>
+                    <h2>{selectedCard.waiter_name}</h2>
+                  </div>
+
+                  <div>
+                    <p>Estado</p>
+
+                    <div
+                      className={`card-status ${
+                        selectedCard.active
+                          ? "card-status-active"
+                          : ""
+                      }`}
+                    >
+                      <span />
+                      {selectedCard.active
+                        ? "Activa"
+                        : "Inactiva"}
+                    </div>
+                  </div>
+
+                  <button
+                    className="card-toggle"
+                    type="button"
+                    disabled={saving}
+                    onClick={() =>
+                      handleToggleCard(selectedCard)
+                    }
+                  >
+                    {selectedCard.active
+                      ? "Desactivar"
+                      : "Activar"}
+                  </button>
+                </motion.div>
+              </AnimatePresence>
+            );
+          })()}
+        </motion.section>
+      )}
     </div>
   );
 }

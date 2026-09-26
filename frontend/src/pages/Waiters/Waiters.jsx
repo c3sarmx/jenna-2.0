@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import {
   createWaiter,
+  getAnalytics,
   getWaiters,
   updateWaiterStatus,
 } from "../../services/api";
@@ -10,6 +11,7 @@ import "./Waiters.css";
 
 function Waiters({ business }) {
   const [waiters, setWaiters] = useState([]);
+  const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
@@ -26,10 +28,14 @@ function Waiters({ business }) {
         setLoading(true);
         setError(null);
 
-        const data = await getWaiters(business.id);
+        const [waitersData, analyticsData] = await Promise.all([
+          getWaiters(business.id),
+          getAnalytics(business.id),
+        ]);
 
         if (!cancelled) {
-          setWaiters(data);
+          setWaiters(waitersData);
+          setAnalytics(analyticsData);
         }
       } catch (requestError) {
         if (!cancelled) {
@@ -125,6 +131,13 @@ function Waiters({ business }) {
   const activeWaiters = waiters.filter(
     (waiter) => waiter.active
   ).length;
+
+  const tapsByWaiter = new Map(
+    (analytics?.taps_by_waiter ?? []).map((item) => [
+      item.waiter_id,
+      Number(item.total_taps) || 0,
+    ])
+  );
 
   return (
     <div className="waiters-page">
@@ -263,6 +276,10 @@ function Waiters({ business }) {
                   })}
                 </span>
               </div>
+
+              <span className="waiter-interactions">
+                {tapsByWaiter.get(waiter.id) ?? 0} interacciones
+              </span>
 
               <button
                 className={`waiter-status ${

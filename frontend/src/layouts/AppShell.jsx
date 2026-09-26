@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import {
   BarChart3,
   ChevronDown,
@@ -147,7 +148,7 @@ function AppShell() {
 
       case "dashboard":
       default:
-        return <Dashboard business={business} />;
+        return <Dashboard business={business} onNavigate={handleViewChange} />;
     }
   }
 
@@ -187,6 +188,19 @@ function AppShell() {
             >
               <Icon size={17} strokeWidth={1.8} />
               <span>{label}</span>
+
+              {activeView === id && (
+                <motion.span
+                  className="nav-active-indicator"
+                  layoutId="sidebar-active-indicator"
+                  transition={{
+                    type: "spring",
+                    stiffness: 500,
+                    damping: 35,
+                    mass: 0.7,
+                  }}
+                />
+              )}
             </button>
           ))}
         </nav>
@@ -274,7 +288,20 @@ function AppShell() {
             </button>
           </div>
         </header>  
-        {renderActiveView()}
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={activeView}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{
+              duration: 0.28,
+              ease: [0.22, 1, 0.36, 1],
+            }}
+          >
+            {renderActiveView()}
+          </motion.div>
+        </AnimatePresence>
       </main>
     </div>
   );

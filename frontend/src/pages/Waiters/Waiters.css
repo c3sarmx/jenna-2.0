@@ -60,50 +60,63 @@
 
 .waiters-list {
   display: grid;
-  gap: 0.75rem;
+  margin-top: 0.5rem;
 }
 
 .waiter-card {
-  display: flex;
+  display: grid;
+  grid-template-columns: 3.5rem minmax(0, 1fr) auto auto;
   align-items: center;
-  gap: 1rem;
-  padding: 1.25rem 1.5rem;
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-lg);
-  background: var(--color-surface);
+  gap: 1.5rem;
+  min-height: 6.5rem;
+  padding: 1.25rem 0;
+  border-top: 1px solid color-mix(
+    in srgb,
+    var(--color-line) 80%,
+    transparent
+  );
   transition:
-    border-color var(--duration-fast) var(--ease-out),
-    transform var(--duration-fast) var(--ease-out);
+    padding var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out);
+}
+
+.waiter-card:last-child {
+  border-bottom: 1px solid color-mix(
+    in srgb,
+    var(--color-line) 80%,
+    transparent
+  );
 }
 
 .waiter-card:hover {
+  padding-left: 0.5rem;
   border-color: var(--color-ink-muted);
-  transform: translateY(-1px);
 }
 
 .waiter-avatar {
   display: grid;
   width: 3rem;
   height: 3rem;
-  flex: 0 0 3rem;
   place-items: center;
+  border: 1px solid var(--color-line);
   border-radius: 50%;
-  background: var(--color-bg);
+  background: var(--color-surface-raised);
   color: var(--color-ink);
-  font-size: 1rem;
-  font-weight: 650;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 400;
 }
 
 .waiter-info {
   min-width: 0;
-  flex: 1;
 }
 
 .waiter-info h2 {
   margin: 0;
-  font-size: var(--text-md);
-  font-weight: 600;
-  letter-spacing: -0.02em;
+  color: var(--color-ink);
+  font-size: clamp(1.15rem, 2vw, 1.45rem);
+  font-weight: 500;
+  letter-spacing: -0.035em;
 }
 
 .waiter-info span {
@@ -116,10 +129,16 @@
 .waiter-status {
   display: flex;
   align-items: center;
-  gap: 0.45rem;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  min-width: 6rem;
+  border: 0;
+  background: transparent;
   color: var(--color-ink-muted);
+  font: inherit;
   font-size: var(--text-xs);
   font-weight: 600;
+  cursor: pointer;
 }
 
 .waiter-status > span {
@@ -139,9 +158,8 @@
 
 .waiters-empty {
   padding: 4rem 1.5rem;
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-lg);
-  background: var(--color-surface);
+  border-top: 1px solid var(--color-line);
+  border-bottom: 1px solid var(--color-line);
   text-align: center;
 }
 
@@ -301,7 +319,19 @@
   }
 
   .waiter-card {
-    padding: 1rem;
+    grid-template-columns: 2.75rem minmax(0, 1fr) auto;
+    gap: 1rem;
+    min-height: 5.5rem;
+    padding: 1rem 0;
+  }
+
+  .waiter-avatar {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+
+  .waiter-status {
+    min-width: auto;
   }
 }
 

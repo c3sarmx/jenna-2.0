@@ -10,7 +10,21 @@ import {
 } from "../../services/api";
 import "./Dashboard.css";
 
-function Dashboard({ business }) {
+function getGreeting() {
+  const hour = new Date().getHours();
+
+  if (hour >= 5 && hour < 12) {
+    return "Buenos días,";
+  }
+
+  if (hour >= 12 && hour < 19) {
+    return "Buenas tardes,";
+  }
+
+  return "Buenas noches,";
+}
+
+function Dashboard({ business, onNavigate }) {
   const [analytics, setAnalytics] = useState(null);
   const [cards, setCards] = useState([]);
   const [waiters, setWaiters] = useState([]);
@@ -73,6 +87,13 @@ function Dashboard({ business }) {
     reviews_by_waiter: [],
   };
 
+  const statusTitle =
+    cards.length === 0 || waiters.length === 0
+      ? "Configuración pendiente"
+      : activeCards === cards.length && activeWaiters === waiters.length
+        ? "Todo en orden"
+        : "Requiere atención";
+
   const waiterStatusDetail =
     waiters.length === 0
       ? "Sin meseros registrados"
@@ -90,7 +111,7 @@ function Dashboard({ business }) {
       accent: true,
     },
     {
-      label: "Reseñas registradas",
+      label: "Reseñas",
       value: reviewAnalytics.total_review_evidence,
       detail: `${reviewAnalytics.attributed_reviews} con atribución`,
     },
@@ -145,19 +166,28 @@ function Dashboard({ business }) {
     <div className="dashboard">
       <motion.header
         className="dashboard-header"
-        initial={{ opacity: 0, y: 12 }}
+        initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
+        transition={{
+          duration: 0.65,
+          ease: [0.22, 1, 0.36, 1],
+        }}
       >
-        <div>
+        <div className="dashboard-intro">
           <p className="eyebrow">Resumen</p>
 
           <h1>
-            Buenos días, <em>{business.name}.</em>
+            {getGreeting()} <em>{business.name}.</em>
           </h1>
+
+          <p className="dashboard-description">
+            Una vista tranquila de lo que está pasando con tu equipo.
+          </p>
         </div>
 
-        <p className="dashboard-date">Hoy · {today}</p>
+        <time className="dashboard-date">
+          Hoy · {today}
+        </time>
       </motion.header>
 
       <motion.section
@@ -169,6 +199,7 @@ function Dashboard({ business }) {
           visible: {
             transition: {
               staggerChildren: 0.08,
+              delayChildren: 0.12,
             },
           },
         }}
@@ -176,36 +207,66 @@ function Dashboard({ business }) {
         {metrics.map((metric) => (
           <motion.div
             key={metric.label}
+            className={`metric-slot ${
+              metric.accent ? "metric-slot-primary" : ""
+            }`}
             variants={{
-              hidden: { opacity: 0, y: 16 },
-              visible: { opacity: 1, y: 0 },
+              hidden: {
+                opacity: 0,
+                y: 18,
+              },
+              visible: {
+                opacity: 1,
+                y: 0,
+              },
             }}
-            transition={{ duration: 0.45 }}
+            transition={{
+              duration: 0.55,
+              ease: [0.22, 1, 0.36, 1],
+            }}
           >
             <MetricCard {...metric} />
           </motion.div>
         ))}
       </motion.section>
 
-      <section className="dashboard-grid">
-        <article className="activity-panel">
+      <section className="dashboard-primary">
+        <motion.article
+          className="activity-panel"
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{
+            duration: 0.6,
+            delay: 0.3,
+            ease: [0.22, 1, 0.36, 1],
+          }}
+        >
           <div className="panel-heading">
             <div>
               <p className="panel-kicker">Actividad</p>
-              <h2>Interacciones a lo largo del tiempo</h2>
+              <h2>Interacciones</h2>
             </div>
 
             <span>Últimos 30 días</span>
           </div>
 
           <ActivityChart dailyTaps={analytics.daily_taps} />
-        </article>
+        </motion.article>
 
-        <article className="source-panel">
+        <motion.article
+          className="review-panel"
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{
+            duration: 0.6,
+            delay: 0.38,
+            ease: [0.22, 1, 0.36, 1],
+          }}
+        >
           <div className="panel-heading">
             <div>
               <p className="panel-kicker">Reseñas</p>
-              <h2>Estado de las atribuciones</h2>
+              <h2>Lo que llega al negocio</h2>
             </div>
           </div>
 
@@ -214,14 +275,37 @@ function Dashboard({ business }) {
 
             <p className="review-summary-note">
               {reviewAnalytics.total_review_evidence === 0
-                ? "Aún no hay reseñas registradas"
-                : "Reseñas registradas en Dukkah"}
+                ? "Todavía no hay reseñas registradas."
+                : "Reseñas registradas en Dukkah."}
             </p>
 
-            <div className="review-summary-row">
-              <span>Atribuidas</span>
-              <strong>{reviewAnalytics.attributed_reviews}</strong>
-            </div>
+            {reviewAnalytics.total_review_evidence === 0 && (
+              <div className="review-empty-status">
+                <span aria-hidden="true" />
+                <span>Las reseñas públicas se revisan automáticamente.</span>
+              </div>
+            )}
+
+            {reviewAnalytics.attributed_reviews > 0 ? (
+              <button
+                className="review-summary-row review-summary-action"
+                type="button"
+                onClick={() => onNavigate?.("reviews")}
+              >
+                <span>Atribuidas</span>
+                <span className="review-summary-action-value">
+                  <strong>{reviewAnalytics.attributed_reviews}</strong>
+                  <span className="review-summary-action-arrow" aria-hidden="true">
+                    →
+                  </span>
+                </span>
+              </button>
+            ) : (
+              <div className="review-summary-row">
+                <span>Atribuidas</span>
+                <strong>0</strong>
+              </div>
+            )}
 
             <div className="review-summary-row">
               <span>Sin atribución</span>
@@ -229,27 +313,40 @@ function Dashboard({ business }) {
             </div>
 
             <div className="review-summary-external">
-              <span>Último conteo registrado</span>
+              <span>Reseñas en Google</span>
               <strong>{analytics.latest_review_count}</strong>
             </div>
           </div>
-        </article>
+        </motion.article>
       </section>
 
-      <section className="dashboard-grid dashboard-grid-secondary">
-        <article className="source-panel">
+      <section className="dashboard-secondary">
+        <motion.article
+          className="source-panel"
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{
+            duration: 0.55,
+            delay: 0.42,
+            ease: [0.22, 1, 0.36, 1],
+          }}
+        >
           <div className="panel-heading">
             <div>
-              <p className="panel-kicker">Fuentes</p>
-              <h2>Origen de las interacciones</h2>
+              <p className="panel-kicker">Origen</p>
+              <h2>Cómo llegan las interacciones</h2>
             </div>
           </div>
 
           <div className="source-list">
-            {sourcePercentages.map(({ label, percentage }) => (
+            {sourcePercentages.map(({ label, value, percentage }) => (
               <div className="source-item" key={label}>
                 <div className="source-meta">
-                  <span>{label}</span>
+                  <div>
+                    <span>{label}</span>
+                    <small>{value} interacciones</small>
+                  </div>
+
                   <strong>{percentage}%</strong>
                 </div>
 
@@ -259,22 +356,31 @@ function Dashboard({ business }) {
                     initial={{ width: 0 }}
                     animate={{ width: `${percentage}%` }}
                     transition={{
-                      duration: 0.8,
-                      delay: 0.2,
-                      ease: "easeOut",
+                      duration: 0.9,
+                      delay: 0.5,
+                      ease: [0.22, 1, 0.36, 1],
                     }}
                   />
                 </div>
               </div>
             ))}
           </div>
-        </article>
+        </motion.article>
 
-        <article className="activity-panel">
+        <motion.article
+          className="status-panel"
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{
+            duration: 0.55,
+            delay: 0.48,
+            ease: [0.22, 1, 0.36, 1],
+          }}
+        >
           <div className="panel-heading">
             <div>
-              <p className="panel-kicker">Infraestructura</p>
-              <h2>Estado de Dukkah</h2>
+              <p className="panel-kicker">Estado</p>
+              <h2>{statusTitle}</h2>
             </div>
           </div>
 
@@ -282,26 +388,39 @@ function Dashboard({ business }) {
             <div>
               <span>Tarjetas activas</span>
               <strong>
-                {activeCards} <small>/ {cards.length}</small>
+                {activeCards}
+                <small>/ {cards.length}</small>
               </strong>
             </div>
 
             <div>
               <span>Meseros activos</span>
               <strong>
-                {activeWaiters} <small>/ {waiters.length}</small>
+                {activeWaiters}
+                <small>/ {waiters.length}</small>
               </strong>
             </div>
           </div>
-        </article>
+        </motion.article>
       </section>
 
-      <section className="waiter-panel">
+      <motion.section
+        className="waiter-panel"
+        initial={{ opacity: 0, y: 18 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{
+          duration: 0.55,
+          delay: 0.54,
+          ease: [0.22, 1, 0.36, 1],
+        }}
+      >
         <div className="panel-heading">
           <div>
-            <p className="panel-kicker">Actividad por mesero</p>
-            <h2>Interacciones registradas</h2>
+            <p className="panel-kicker">Equipo</p>
+            <h2>Interacciones por mesero</h2>
           </div>
+
+          <span>Top 5</span>
         </div>
 
         <div className="waiter-activity">
@@ -311,7 +430,20 @@ function Dashboard({ business }) {
             </p>
           ) : (
             waiterActivity.map((waiter, index) => (
-              <div className="waiter-item" key={waiter.waiter_id}>
+              <motion.div
+                className="waiter-item"
+                key={waiter.waiter_id}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{
+                  delay: 0.58 + index * 0.06,
+                  duration: 0.4,
+                }}
+              >
+                <span className="waiter-index">
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+
                 <div className="waiter-info">
                   <strong>{waiter.waiter_name}</strong>
 
@@ -327,8 +459,8 @@ function Dashboard({ business }) {
                       }}
                       transition={{
                         duration: 0.8,
-                        delay: index * 0.08,
-                        ease: "easeOut",
+                        delay: 0.65 + index * 0.08,
+                        ease: [0.22, 1, 0.36, 1],
                       }}
                     />
                   </div>
@@ -337,11 +469,11 @@ function Dashboard({ business }) {
                 <strong className="waiter-total">
                   {waiter.total_taps}
                 </strong>
-              </div>
+              </motion.div>
             ))
           )}
         </div>
-      </section>
+      </motion.section>
     </div>
   );
 }

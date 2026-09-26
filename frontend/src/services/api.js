@@ -220,7 +220,7 @@ export async function createReviewEvidence(
       body: JSON.stringify({
         source,
         reviewer_name: reviewerName || null,
-        rating: rating || null,
+        rating: rating ? Number(rating) : null,
         content,
         published_at: publishedAt || null,
         source_url: sourceUrl || null,
