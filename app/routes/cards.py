@@ -67,7 +67,21 @@ def get_cards_route(business_id):
 
 @cards_bp.get("/r/<string:public_id>")
 def resolve_card_route(public_id):
+    print(
+        "CARD DEBUG:",
+        repr(public_id),
+        "length=",
+        len(public_id),
+        flush=True,
+    )
+
     card = get_card_by_public_id(public_id)
+
+    print(
+        "CARD DEBUG RESULT:",
+        repr(card),
+        flush=True,
+    )
 
     if not card:
         return jsonify({
