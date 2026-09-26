@@ -150,16 +150,35 @@ def sync_google_reviews(business_id):
         if item[3]
     }
 
+    evidence_by_external_id = {
+        item[3]: item
+        for item in existing_evidence
+        if item[3]
+    }
+
     new_reviews = get_new_reviews(
         reviews,
         known_review_ids,
     )
 
+    new_review_ids = {
+        review.get("id")
+        for review in new_reviews
+        if review.get("id")
+    }
+
     imported = 0
     duplicates = 0
+    attributed = 0
+    attribution_skipped = 0
 
-    for review in new_reviews:
-        try:
+    for review in reviews:
+        review_id = review.get("id")
+
+        if not review_id:
+            continue
+
+        if review_id in new_review_ids:
             content = (
                 review.get("original_text")
                 or review.get("text")
@@ -181,39 +200,65 @@ def sync_google_reviews(business_id):
             except GoogleTranslateError:
                 translated_content = None
 
-            evidence = create_review_evidence(
-                business_id=business_id,
-                source="google_places",
-                external_id=review["id"],
-                reviewer_name=(
-                    review.get("author") or {}
-                ).get("display_name"),
-                rating=review.get("rating"),
-                content=content,
-                translated_content=translated_content,
-                published_at=_parse_publish_time(
-                    review.get("publish_time")
-                ),
-                source_url=review.get(
-                    "google_maps_uri"
-                ),
+            try:
+                evidence = create_review_evidence(
+                    business_id=business_id,
+                    source="google_places",
+                    external_id=review_id,
+                    reviewer_name=(
+                        review.get("author") or {}
+                    ).get("display_name"),
+                    rating=review.get("rating"),
+                    content=content,
+                    translated_content=translated_content,
+                    published_at=_parse_publish_time(
+                        review.get("publish_time")
+                    ),
+                    source_url=review.get(
+                        "google_maps_uri"
+                    ),
+                )
+
+                imported += 1
+
+            except ValueError as exc:
+                if str(exc) == "review evidence already exists":
+                    duplicates += 1
+                    evidence = evidence_by_external_id.get(
+                        review_id
+                    )
+
+                    if not evidence:
+                        continue
+
+                    content = evidence[6] or ""
+                    translated_content = evidence[11]
+                else:
+                    raise
+
+        else:
+            evidence = evidence_by_external_id.get(
+                review_id
             )
 
-            attribute_review_by_waiter_names(
-                business_id=business_id,
-                review_evidence_id=evidence[0],
-                content=content,
-                translated_content=translated_content,
-            )
-
-            imported += 1
-
-        except ValueError as exc:
-            if str(exc) == "review evidence already exists":
-                duplicates += 1
+            if not evidence:
                 continue
 
-            raise
+            content = evidence[6] or ""
+            translated_content = evidence[11]
+
+        if not evidence:
+            continue
+
+        result = attribute_review_by_waiter_names(
+            business_id=business_id,
+            review_evidence_id=evidence[0],
+            content=content,
+            translated_content=translated_content,
+        )
+
+        attributed += result["created"]
+        attribution_skipped += result["skipped"]
 
     return {
         "business_id": business_id,
@@ -222,4 +267,6 @@ def sync_google_reviews(business_id):
         "new_reviews": len(new_reviews),
         "imported": imported,
         "duplicates": duplicates,
+        "attributed": attributed,
+        "attribution_skipped": attribution_skipped,
     }

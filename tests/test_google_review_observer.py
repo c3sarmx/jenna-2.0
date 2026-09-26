@@ -168,6 +168,8 @@ def test_sync_google_reviews_imports_new_reviews(
         "new_reviews": 2,
         "imported": 2,
         "duplicates": 0,
+        "attributed": 0,
+        "attribution_skipped": 0,
     }
 
     evidence = get_review_evidence_by_business(
@@ -408,3 +410,107 @@ def test_backfill_review_translations_updates_missing_translations(
     assert stored_evidence[0][11] == (
         "Excelente servicio y café increíble."
     )
+
+
+def test_sync_google_reviews_reprocesses_existing_reviews_for_attribution(
+    test_database_url,
+    monkeypatch,
+    clean_database,
+):
+    monkeypatch.setenv(
+        "DATABASE_URL",
+        test_database_url,
+    )
+
+    from datetime import datetime, timezone
+
+    from app.services.businesses import create_business
+    from app.services.google_review_observer import (
+        sync_google_reviews,
+    )
+    from app.services.review_attributions import (
+        get_review_attributions_by_business,
+    )
+    from app.services.review_evidence import (
+        create_review_evidence,
+    )
+    from app.services.waiters import create_waiter
+
+    business = create_business(
+        name="Reprocess Attribution Café",
+        google_review_url=(
+            "https://search.google.com/local/writereview"
+            "?placeid=PLACE123"
+        ),
+    )
+
+    waiter = create_waiter(
+        business_id=business[0],
+        name="Cristian",
+    )
+
+    create_review_evidence(
+        business_id=business[0],
+        source="google_places",
+        external_id="google-review-cristian",
+        reviewer_name="Cliente",
+        rating=5,
+        content="Excelente atención de Cristian.",
+        published_at=datetime(2026, 9, 22, 14, 0, tzinfo=timezone.utc),
+        source_url="https://google.com/review/cristian",
+    )
+
+    reviews = [
+        {
+            "id": "google-review-cristian",
+            "rating": 5,
+            "text": "Excelente atención de Cristian.",
+            "publish_time": "2026-09-22T14:00:00Z",
+            "author": {
+                "display_name": "Cliente",
+            },
+            "google_maps_uri": (
+                "https://google.com/review/cristian"
+            ),
+        },
+    ]
+
+    with patch(
+        "app.services.google_review_observer.get_place_reviews",
+        return_value=reviews,
+    ):
+        result = sync_google_reviews(
+            business[0]
+        )
+
+    assert result["reviews_received"] == 1
+    assert result["new_reviews"] == 0
+    assert result["imported"] == 0
+    assert result["attributed"] == 1
+    assert result["attribution_skipped"] == 0
+
+    attributions = get_review_attributions_by_business(
+        business[0]
+    )
+
+    assert len(attributions) == 1
+    assert attributions[0][2] == waiter[0]
+
+    with patch(
+        "app.services.google_review_observer.get_place_reviews",
+        return_value=reviews,
+    ):
+        second = sync_google_reviews(
+            business[0]
+        )
+
+    assert second["new_reviews"] == 0
+    assert second["imported"] == 0
+    assert second["attributed"] == 0
+    assert second["attribution_skipped"] == 1
+
+    assert len(
+        get_review_attributions_by_business(
+            business[0]
+        )
+    ) == 1
