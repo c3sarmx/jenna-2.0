@@ -139,6 +139,17 @@
   font-size: var(--text-xs);
   font-weight: 600;
   cursor: pointer;
+  transition:
+    color var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
+}
+
+.waiter-status:hover {
+  color: var(--color-ink);
+}
+
+.waiter-status:active {
+  transform: scale(0.97);
 }
 
 .waiter-status > span {
