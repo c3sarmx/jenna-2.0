@@ -337,20 +337,4 @@
 
 .waiters-state {
   min-height: 20rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  color: var(--color-ink-muted);
-}
-
-.waiters-state p {
-  margin: 0;
-  font-size: var(--text-md);
-}
-
-.waiters-state span {
-  margin-top: 0.4rem;
-  color: var(--color-accent);
-  font-size: var(--text-xs);
 }

@@ -334,8 +334,7 @@
   background: var(--color-bg);
 }
 
-.cards-empty,
-.cards-state {
+.cards-empty {
   min-height: 18rem;
   display: flex;
   align-items: center;
@@ -352,11 +351,14 @@
   font-weight: 600;
 }
 
-.cards-empty span,
-.cards-state p {
+.cards-empty span {
   margin-top: 0.4rem;
   color: var(--color-ink-muted);
   font-size: var(--text-sm);
+}
+
+.cards-state {
+  min-height: 18rem;
 }
 
 @media (max-width: 900px) {

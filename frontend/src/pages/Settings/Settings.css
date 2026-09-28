@@ -188,16 +188,6 @@
 
 .settings-state {
   min-height: 30rem;
-  display: grid;
-  place-content: center;
-  text-align: center;
-}
-
-.settings-state > p {
-  margin: 0;
-  color: var(--color-accent);
-  font-size: var(--text-sm);
-  font-weight: 650;
 }
 
 @media (max-width: 700px) {

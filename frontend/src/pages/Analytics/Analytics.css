@@ -340,23 +340,6 @@
 
 .analytics-state {
   min-height: 30rem;
-  display: grid;
-  place-content: center;
-  text-align: center;
-}
-
-.analytics-state p {
-  margin: 0;
-  color: var(--color-accent);
-  font-size: var(--text-sm);
-  font-weight: 650;
-}
-
-.analytics-state span {
-  display: block;
-  margin-top: 0.5rem;
-  color: var(--color-ink-muted);
-  font-size: var(--text-sm);
 }
 
 @media (max-width: 850px) {
