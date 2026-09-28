@@ -72,6 +72,10 @@
   transform: translateX(2px);
 }
 
+.nav-item:active {
+  transform: translateX(2px) scale(0.985);
+}
+
 .nav-item-active {
   color: var(--color-ink);
   background: transparent;
