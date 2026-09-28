@@ -438,10 +438,18 @@
   font: inherit;
   font-size: var(--text-xs);
   cursor: pointer;
+  transition:
+    color var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
 }
 
 .review-original-button:hover {
   color: var(--color-ink);
+  transform: translateX(2px);
+}
+
+.review-original-button:active {
+  transform: translateX(2px) scale(0.98);
 }
 
 .review-original-content {
