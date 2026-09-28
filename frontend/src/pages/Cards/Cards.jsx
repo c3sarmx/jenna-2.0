@@ -301,7 +301,7 @@ function Cards({ business }) {
 
                 if (
                   Number.isFinite(nextCardId) &&
-                  nextCardId !== selectedCardId
+                  nextCardId !== selectedCardIdRef.current
                 ) {
                   selectCard(nextCardId);
                 }
