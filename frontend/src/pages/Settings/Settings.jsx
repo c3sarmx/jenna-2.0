@@ -5,6 +5,7 @@ import {
   updateReviewSyncSettings,
 } from "../../services/api";
 import ErrorState from "../../components/ErrorState/ErrorState";
+import LoadingState from "../../components/LoadingState/LoadingState";
 import "./Settings.css";
 
 const DEFAULT_SCHEDULE = {
@@ -215,7 +216,7 @@ function Settings({ business }) {
   if (loading) {
     return (
       <div className="settings settings-state">
-        <p>Cargando configuración...</p>
+        <LoadingState message="Cargando configuración..." />
       </div>
     );
   }

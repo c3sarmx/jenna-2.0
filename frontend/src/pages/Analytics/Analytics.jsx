@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import ActivityChart from "../../components/ActivityChart/ActivityChart";
 import ErrorState from "../../components/ErrorState/ErrorState";
+import LoadingState from "../../components/LoadingState/LoadingState";
 import {
   getAnalytics,
   getBusinessWeeklyAnalytics,
@@ -165,7 +166,7 @@ function Analytics({ business }) {
   if (loading) {
     return (
       <div className="analytics analytics-state">
-        <p>Cargando analítica...</p>
+        <LoadingState message="Cargando analítica..." />
       </div>
     );
   }

@@ -7,6 +7,7 @@ import {
   getWaiters,
 } from "../../services/api";
 import ErrorState from "../../components/ErrorState/ErrorState";
+import LoadingState from "../../components/LoadingState/LoadingState";
 import "./Reviews.css";
 
 function formatDate(value) {
@@ -208,7 +209,7 @@ function Reviews({ business }) {
   if (loading) {
     return (
       <div className="reviews reviews-state">
-        <p>Cargando reseñas...</p>
+        <LoadingState message="Cargando reseñas..." />
       </div>
     );
   }

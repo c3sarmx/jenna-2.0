@@ -7,6 +7,7 @@ import {
   updateWaiterStatus,
 } from "../../services/api";
 import ErrorState from "../../components/ErrorState/ErrorState";
+import LoadingState from "../../components/LoadingState/LoadingState";
 import "./Waiters.css";
 
 function Waiters({ business }) {
@@ -112,7 +113,7 @@ function Waiters({ business }) {
   if (loading) {
     return (
       <div className="waiters-page waiters-state">
-        <p>Cargando meseros...</p>
+        <LoadingState message="Cargando meseros..." />
       </div>
     );
   }

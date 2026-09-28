@@ -3,6 +3,7 @@ import { motion } from "motion/react";
 import ActivityChart from "../../components/ActivityChart/ActivityChart";
 import MetricCard from "../../components/MetricCard/MetricCard";
 import ErrorState from "../../components/ErrorState/ErrorState";
+import LoadingState from "../../components/LoadingState/LoadingState";
 import {
   getAnalytics,
   getCards,
@@ -61,7 +62,7 @@ function Dashboard({ business, onNavigate }) {
   if (loading) {
     return (
       <div className="dashboard dashboard-state">
-        <p>Cargando información...</p>
+        <LoadingState message="Cargando información..." />
       </div>
     );
   }

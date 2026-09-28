@@ -7,6 +7,7 @@ import {
   updateCardStatus,
 } from "../../services/api";
 import ErrorState from "../../components/ErrorState/ErrorState";
+import LoadingState from "../../components/LoadingState/LoadingState";
 import "./Cards.css";
 
 function Cards({ business }) {
@@ -122,7 +123,7 @@ function Cards({ business }) {
   if (loading) {
     return (
       <div className="cards-page cards-state">
-        <p>Cargando tarjetas...</p>
+        <LoadingState message="Cargando tarjetas..." />
       </div>
     );
   }

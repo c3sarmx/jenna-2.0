@@ -1,0 +1,24 @@
+.loading-state {
+  min-height: 16rem;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 0.85rem;
+  padding: 3rem 1.5rem;
+  text-align: center;
+}
+
+.loading-state-line {
+  display: block;
+  width: 2.75rem;
+  height: 1px;
+  transform-origin: center;
+  background: var(--color-accent);
+}
+
+.loading-state p {
+  margin: 0;
+  color: var(--color-ink-muted);
+  font-size: var(--text-xs);
+  line-height: 1.4;
+}
