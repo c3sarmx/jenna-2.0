@@ -370,15 +370,33 @@
 }
 
 @media (max-width: 700px) {
+  .topbar {
+    gap: 1rem;
+  }
+
+  .business-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .business-switcher {
+    min-width: 0;
+  }
+
+  .business-switcher-trigger {
+    min-width: 0;
+    max-width: 11rem;
+  }
+
   .user-menu {
+    flex-shrink: 0;
     gap: 0.5rem;
   }
 
   .user-label {
-    max-width: 9rem;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    display: none;
   }
 
   .logout-button {
