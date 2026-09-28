@@ -89,7 +89,14 @@ def create_review_evidence_route(business_id):
 @review_evidence_bp.get("/businesses/<int:business_id>/review-evidence")
 @require_business_access
 def get_review_evidence_route(business_id):
-    evidence = get_review_evidence_by_business(business_id)
+    date_from = request.args.get("from")
+    date_to = request.args.get("to")
+
+    evidence = get_review_evidence_by_business(
+        business_id,
+        date_from=date_from,
+        date_to=date_to,
+    )
 
     return jsonify([
         {

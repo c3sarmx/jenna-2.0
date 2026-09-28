@@ -248,7 +248,7 @@ def find_duplicate_review_evidence(
         conn.close()
 
 
-def get_review_evidence_by_business(business_id):
+def get_review_evidence_by_business(business_id, date_from=None, date_to=None):
     conn = get_connection()
 
     try:
@@ -270,9 +270,17 @@ def get_review_evidence_by_business(business_id):
                     translated_content
                 FROM review_evidence
                 WHERE business_id = %s
+                  AND (%s::timestamptz IS NULL OR published_at >= %s::timestamptz)
+                  AND (%s::timestamptz IS NULL OR published_at < %s::timestamptz)
                 ORDER BY imported_at DESC, id DESC;
                 """,
-                (business_id,),
+                (
+                    business_id,
+                    date_from,
+                    date_from,
+                    date_to,
+                    date_to,
+                ),
             )
 
             return cur.fetchall()

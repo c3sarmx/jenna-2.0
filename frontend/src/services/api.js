@@ -196,9 +196,24 @@ export async function getReviewAttributionEvidence(
   );
 }
 
-export async function getReviewEvidence(businessId) {
+export async function getReviewEvidence(
+  businessId,
+  { dateFrom, dateTo } = {}
+) {
+  const params = new URLSearchParams();
+
+  if (dateFrom) {
+    params.set("from", dateFrom);
+  }
+
+  if (dateTo) {
+    params.set("to", dateTo);
+  }
+
+  const query = params.toString();
+
   return request(
-    `/businesses/${businessId}/review-evidence`
+    `/businesses/${businessId}/review-evidence${query ? `?${query}` : ""}`
   );
 }
 

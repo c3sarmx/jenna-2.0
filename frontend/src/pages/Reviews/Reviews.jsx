@@ -52,6 +52,9 @@ function Reviews({ business }) {
   const [rating, setRating] = useState("");
   const [content, setContent] = useState("");
   const [publishedAt, setPublishedAt] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [activeDateFilter, setActiveDateFilter] = useState("Todas");
 
   const [selectedWaiter, setSelectedWaiter] = useState("");
   const [confidence, setConfidence] = useState("confirmed");
@@ -60,9 +63,15 @@ function Reviews({ business }) {
   const [saving, setSaving] = useState(false);
   const [actionError, setActionError] = useState(null);
 
-  async function loadReviews() {
+  async function loadReviews(
+    nextDateFrom = dateFrom,
+    nextDateTo = dateTo,
+    showLoading = true
+  ) {
     try {
-      setLoading(true);
+      if (showLoading) {
+        setLoading(true);
+      }
       setError(null);
 
       const [
@@ -70,7 +79,10 @@ function Reviews({ business }) {
         attributionsData,
         waitersData,
       ] = await Promise.all([
-        getReviewEvidence(business.id),
+        getReviewEvidence(business.id, {
+          dateFrom: nextDateFrom,
+          dateTo: nextDateTo,
+        }),
         getReviewAttributions(business.id),
         getWaiters(business.id),
       ]);
@@ -81,7 +93,9 @@ function Reviews({ business }) {
     } catch (requestError) {
       setError(requestError);
     } finally {
-      setLoading(false);
+      if (showLoading) {
+        setLoading(false);
+      }
     }
   }
 
@@ -108,12 +122,20 @@ function Reviews({ business }) {
   }, [waiters]);
 
   const attributedReviewIds = useMemo(() => {
-    return new Set(
-      attributions.map(
-        (attribution) => attribution.review_evidence_id
-      )
+    const reviewIds = new Set(
+      reviews.map((review) => review.id)
     );
-  }, [attributions]);
+
+    return new Set(
+      attributions
+        .filter((attribution) =>
+          reviewIds.has(attribution.review_evidence_id)
+        )
+        .map(
+          (attribution) => attribution.review_evidence_id
+        )
+    );
+  }, [attributions, reviews]);
 
   const attributedCount = attributedReviewIds.size;
 
@@ -271,6 +293,55 @@ function Reviews({ business }) {
           <strong>{Math.max(unattributedCount, 0)}</strong>
         </article>
       </section>
+
+      <div className="reviews-filters" aria-label="Filtrar reseñas por fecha">
+        {[
+          { label: "Todas", days: null },
+          { label: "7 días", days: 7 },
+          { label: "30 días", days: 30 },
+          { label: "90 días", days: 90 },
+        ].map((filter) => {
+          const isActive = activeDateFilter === filter.label;
+
+          return (
+            <button
+              key={filter.label}
+              type="button"
+              className={`reviews-filter ${
+                isActive ? "reviews-filter-active" : ""
+              }`}
+              onClick={() => {
+                if (filter.days === null) {
+                  setDateFrom("");
+                  setDateTo("");
+                  setActiveDateFilter("Todas");
+                  loadReviews("", "", false);
+                  return;
+                }
+
+                const end = new Date();
+                end.setDate(end.getDate() + 1);
+
+                const start = new Date(end);
+                start.setDate(end.getDate() - filter.days);
+
+                const formatFilterDate = (date) =>
+                  date.toISOString().slice(0, 10);
+
+                const nextDateFrom = formatFilterDate(start);
+                const nextDateTo = formatFilterDate(end);
+
+                setDateFrom(nextDateFrom);
+                setDateTo(nextDateTo);
+                setActiveDateFilter(filter.label);
+                loadReviews(nextDateFrom, nextDateTo, false);
+              }}
+            >
+              {filter.label}
+            </button>
+          );
+        })}
+      </div>
 
       {showCreateForm && (
         <section className="reviews-panel">
