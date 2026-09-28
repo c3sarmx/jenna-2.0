@@ -33,8 +33,7 @@ function Login({ onLogin }) {
         transition={{ duration: 0.5, ease: "easeOut" }}
       >
         <div className="login-brand">
-          <span className="login-mark">D</span>
-          <span>Dukkah</span>
+          <span>JENNA</span>
         </div>
 
         <div className="login-heading">
@@ -86,7 +85,7 @@ function Login({ onLogin }) {
       </motion.section>
 
       <p className="login-footer">
-        Dukkah · Tu negocio, en movimiento.
+        JENNA × LIO.
       </p>
     </main>
   );
