@@ -71,8 +71,11 @@ function addDaysToDate(dateString, days) {
 function Analytics({ business }) {
   const [analytics, setAnalytics] = useState(null);
   const [weeklyAnalytics, setWeeklyAnalytics] = useState(null);
+  const [selectedWeekStart, setSelectedWeekStart] =
+    useState(getCurrentWeekStart());
   const [period, setPeriod] = useState("30d");
   const [loading, setLoading] = useState(true);
+  const [weeklyLoading, setWeeklyLoading] = useState(false);
   const [error, setError] = useState(null);
   const [retryKey, setRetryKey] = useState(0);
   const [selectedEvidence, setSelectedEvidence] = useState(null);
@@ -103,19 +106,12 @@ function Analytics({ business }) {
           selectedPeriod.days
         );
 
-        const [data, weeklyData] = await Promise.all([
-          getAnalytics(business.id, {
-            dateFrom,
-            dateTo,
-          }),
-          getBusinessWeeklyAnalytics(
-            business.id,
-            getCurrentWeekStart()
-          ),
-        ]);
+        const data = await getAnalytics(business.id, {
+          dateFrom,
+          dateTo,
+        });
 
         setAnalytics(data);
-        setWeeklyAnalytics(weeklyData);
       } catch (requestError) {
         setError(requestError);
       } finally {
@@ -125,6 +121,27 @@ function Analytics({ business }) {
 
     loadAnalytics();
   }, [business.id, selectedPeriod.days, retryKey]);
+
+  useEffect(() => {
+    async function loadWeeklyAnalytics() {
+      try {
+        setWeeklyLoading(true);
+
+        const weeklyData = await getBusinessWeeklyAnalytics(
+          business.id,
+          selectedWeekStart
+        );
+
+        setWeeklyAnalytics(weeklyData);
+      } catch (requestError) {
+        setError(requestError);
+      } finally {
+        setWeeklyLoading(false);
+      }
+    }
+
+    loadWeeklyAnalytics();
+  }, [business.id, selectedWeekStart]);
 
   function handlePeriodChange(event) {
     setPeriod(event.target.value);
@@ -404,12 +421,43 @@ function Analytics({ business }) {
           </div>
 
           {weeklyAnalytics && (
-            <span>
-              {formatWeekRange(
-                weeklyAnalytics.week_start,
-                weeklyAnalytics.week_end
-              )}
-            </span>
+            <div className="weekly-navigation">
+              <button
+                type="button"
+                className="weekly-navigation-button"
+                aria-label="Semana anterior"
+                onClick={() =>
+                  setSelectedWeekStart(
+                    addDaysToDate(selectedWeekStart, -7)
+                  )
+                }
+              >
+                ‹
+              </button>
+
+              <span className="weekly-navigation-range">
+                {formatWeekRange(
+                  weeklyAnalytics.week_start,
+                  weeklyAnalytics.week_end
+                )}
+              </span>
+
+              <button
+                type="button"
+                className="weekly-navigation-button"
+                aria-label="Semana siguiente"
+                disabled={
+                  selectedWeekStart >= getCurrentWeekStart()
+                }
+                onClick={() =>
+                  setSelectedWeekStart(
+                    addDaysToDate(selectedWeekStart, 7)
+                  )
+                }
+              >
+                ›
+              </button>
+            </div>
           )}
         </div>
 

@@ -145,9 +145,51 @@
   letter-spacing: -0.025em;
 }
 
-.analytics-panel-heading > span {
+.weekly-navigation {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
   color: var(--color-ink-muted);
   font-size: var(--text-xs);
+}
+
+.weekly-navigation-range {
+  min-width: 7.5rem;
+  text-align: center;
+}
+
+.weekly-navigation-button {
+  width: 1.75rem;
+  height: 1.75rem;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-ink-muted);
+  font: inherit;
+  font-size: 1.15rem;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    color var(--duration-fast) var(--ease-out),
+    background var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
+}
+
+.weekly-navigation-button:hover:not(:disabled) {
+  background: var(--color-surface);
+  color: var(--color-ink);
+}
+
+.weekly-navigation-button:active:not(:disabled) {
+  transform: scale(0.94);
+}
+
+.weekly-navigation-button:disabled {
+  opacity: 0.35;
+  cursor: default;
 }
 
 .analytics-activity {
