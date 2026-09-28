@@ -1,8 +1,8 @@
 .activity-chart {
   position: relative;
-  height: 17rem;
-  margin-top: 2rem;
-  padding: 0 0 2rem 2.5rem;
+  height: 19rem;
+  margin-top: 2.5rem;
+  padding: 0 0 2.25rem 2.5rem;
   user-select: none;
 }
 
@@ -11,15 +11,15 @@
   top: 0;
   left: 2.5rem;
   width: calc(100% - 2.5rem);
-  height: calc(100% - 2rem);
+  height: calc(100% - 2.25rem);
   overflow: visible;
 }
 
 .chart-grid-lines line {
   stroke: var(--color-line);
-  stroke-width: 0.45;
+  stroke-width: 0.4;
   vector-effect: non-scaling-stroke;
-  opacity: 0.65;
+  opacity: 0.5;
 }
 
 .chart-area {
@@ -29,7 +29,7 @@
 .chart-path {
   fill: none;
   stroke: var(--color-accent);
-  stroke-width: 2;
+  stroke-width: 2.2;
   vector-effect: non-scaling-stroke;
   stroke-linecap: round;
   stroke-linejoin: round;
@@ -50,24 +50,24 @@
 .chart-point {
   fill: var(--color-accent);
   stroke: var(--color-surface-raised);
-  stroke-width: 1.5;
+  stroke-width: 1.75;
   vector-effect: non-scaling-stroke;
 }
 
 .chart-focus-line {
   stroke: var(--color-ink-muted);
-  stroke-width: 0.75;
-  stroke-dasharray: 3 4;
+  stroke-width: 0.65;
+  stroke-dasharray: 2 5;
   vector-effect: non-scaling-stroke;
   pointer-events: none;
-  opacity: 0.45;
+  opacity: 0.35;
 }
 
 .chart-y-axis {
   position: absolute;
   left: 0;
   top: 0;
-  bottom: 2rem;
+  bottom: 2.25rem;
   width: 2rem;
   display: flex;
   flex-direction: column;
@@ -79,7 +79,7 @@
 .chart-y-axis span,
 .chart-axis span {
   color: var(--color-muted);
-  font-size: 0.68rem;
+  font-size: 0.66rem;
   line-height: 1;
   white-space: nowrap;
 }
@@ -101,19 +101,19 @@
   display: grid;
   gap: 0.2rem;
   min-width: max-content;
-  padding: 0.55rem 0.7rem;
+  padding: 0.6rem 0.75rem;
   border: 1px solid color-mix(
     in srgb,
     var(--color-line) 80%,
     transparent
   );
-  border-radius: 0.65rem;
+  border-radius: 0.7rem;
   background: color-mix(
     in srgb,
-    var(--color-surface-raised) 94%,
+    var(--color-surface-raised) 96%,
     transparent
   );
-  box-shadow: 0 8px 24px rgba(23, 23, 21, 0.08);
+  box-shadow: 0 10px 28px rgba(23, 23, 21, 0.07);
   pointer-events: none;
 }
 
@@ -124,12 +124,14 @@
 
 .chart-tooltip strong {
   color: var(--color-ink);
-  font-size: 0.78rem;
+  font-size: 0.8rem;
   font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
 @media (max-width: 600px) {
   .activity-chart {
+    height: 17rem;
     padding-left: 2rem;
   }
 
