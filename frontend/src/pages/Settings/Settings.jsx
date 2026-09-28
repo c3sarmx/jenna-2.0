@@ -239,7 +239,7 @@ function Settings({ business }) {
           <p className="eyebrow">Configuración</p>
 
           <h1>
-            Ajusta cómo funciona <em>{business.name}.</em>
+            Ajusta cómo funciona <span>{business.name}.</span>
           </h1>
 
           <p className="settings-intro">

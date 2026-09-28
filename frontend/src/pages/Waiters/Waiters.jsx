@@ -152,7 +152,7 @@ function Waiters({ business }) {
           <p className="eyebrow">Meseros</p>
 
           <h1>
-            El equipo de <em>{business.name}.</em>
+            El equipo de <span>{business.name}.</span>
           </h1>
 
           <p className="waiters-intro">

@@ -235,7 +235,7 @@ function Analytics({ business }) {
           <p className="eyebrow">Analítica</p>
 
           <h1>
-            Lo que está pasando en <em>{business.name}.</em>
+            Lo que está pasando en <span>{business.name}.</span>
           </h1>
 
           <p className="analytics-intro">

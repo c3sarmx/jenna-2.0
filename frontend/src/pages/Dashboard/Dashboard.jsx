@@ -178,7 +178,7 @@ function Dashboard({ business, onNavigate }) {
           <p className="eyebrow">Resumen</p>
 
           <h1>
-            {getGreeting()} <em>{business.name}.</em>
+            {getGreeting()} <span>{business.name}.</span>
           </h1>
 
           <p className="dashboard-description">

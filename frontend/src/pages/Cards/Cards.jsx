@@ -155,7 +155,7 @@ function Cards({ business }) {
           <p className="eyebrow">Tarjetas</p>
 
           <h1>
-            Tus tarjetas, <em>{business.name}.</em>
+            Tus tarjetas, <span>{business.name}.</span>
           </h1>
 
           <p className="cards-intro">
