@@ -275,14 +275,14 @@
 
 .dashboard-secondary {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: 1fr;
   gap: 1rem;
   margin-top: 1rem;
 }
 
 .source-panel,
 .status-panel {
-  min-height: 20rem;
+  min-height: 0;
   padding: 1.75rem;
 }
 
@@ -350,8 +350,9 @@
 
 .status-summary {
   display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0;
-  margin-top: 2.5rem;
+  margin-top: 2rem;
 }
 
 .status-summary > div {
@@ -359,16 +360,16 @@
   grid-template-columns: 1fr auto;
   align-items: center;
   gap: 1rem;
-  padding: 1.25rem 0;
-  border-top: 1px solid color-mix(
+  padding: 1rem 1.5rem;
+  border-top: 0;
+}
+
+.status-summary > div + div {
+  border-left: 1px solid color-mix(
     in srgb,
     var(--color-line) 75%,
     transparent
   );
-}
-
-.status-summary > div:first-child {
-  border-top: 0;
 }
 
 .status-summary span {
@@ -580,5 +581,24 @@
 
   .metric-slot-primary {
     grid-column: auto;
+  }
+}
+
+@media (max-width: 700px) {
+  .status-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .status-summary > div {
+    padding: 1rem 0;
+  }
+
+  .status-summary > div + div {
+    border-left: 0;
+    border-top: 1px solid color-mix(
+      in srgb,
+      var(--color-line) 75%,
+      transparent
+    );
   }
 }
