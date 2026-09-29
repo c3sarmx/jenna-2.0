@@ -80,6 +80,29 @@ def _levenshtein_distance(left, right):
     return previous[-1]
 
 
+def _is_transposition(candidate, expected):
+    if len(candidate) != len(expected):
+        return False
+
+    differences = [
+        index
+        for index, (left, right)
+        in enumerate(zip(candidate, expected))
+        if left != right
+    ]
+
+    if len(differences) != 2:
+        return False
+
+    first, second = differences
+
+    return (
+        second == first + 1
+        and candidate[first] == expected[second]
+        and candidate[second] == expected[first]
+    )
+
+
 def _is_close_token(candidate, expected):
     if candidate == expected:
         return True, "exact"
@@ -92,15 +115,33 @@ def _is_close_token(candidate, expected):
 
     distance = _levenshtein_distance(candidate, expected)
 
-    if len(expected) <= 4:
-        max_distance = 1
-    elif len(expected) <= 7:
+    if len(expected) <= 7:
         max_distance = 1
     else:
         max_distance = 2
 
     if distance <= max_distance:
-        return True, "fuzzy"
+        # For short names, allow fuzzy matches caused by a missing
+        # or extra character. Avoid treating arbitrary substitutions
+        # as name variants, since common words can be one edit away
+        # from a waiter's name (e.g. "cenar" -> "Cesar").
+        if distance == 1:
+            length_difference = abs(
+                len(candidate) - len(expected)
+            )
+
+            if length_difference == 1:
+                return True, "fuzzy"
+
+            return False, None
+
+        if distance == 2 and _is_transposition(
+            candidate,
+            expected,
+        ):
+            return True, "fuzzy"
+
+        return False, None
 
     return False, None
 
@@ -265,5 +306,38 @@ def find_waiter_matches(
                 "reason": reason,
             }
         )
+
+    high_matches = [
+        match
+        for match in matches
+        if match["confidence"] == "high"
+    ]
+
+    if high_matches:
+        filtered_matches = []
+
+        for match in matches:
+            if match["confidence"] == "high":
+                filtered_matches.append(match)
+                continue
+
+            medium_tokens = _tokenize(match["waiter_name"])
+            conflicts_with_exact = False
+
+            for high_match in high_matches:
+                high_tokens = _tokenize(high_match["waiter_name"])
+
+                if any(
+                    _is_close_token(medium_token, high_token)[0]
+                    for medium_token in medium_tokens
+                    for high_token in high_tokens
+                ):
+                    conflicts_with_exact = True
+                    break
+
+            if not conflicts_with_exact:
+                filtered_matches.append(match)
+
+        matches = filtered_matches
 
     return matches

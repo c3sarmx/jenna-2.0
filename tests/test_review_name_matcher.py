@@ -291,3 +291,78 @@ def test_does_not_reuse_same_review_token_for_multiple_name_parts():
     )
 
     assert matches == []
+
+
+def test_does_not_match_common_word_similar_to_name():
+    waiters = [
+        {"id": 1, "name": "César"},
+    ]
+
+    matches = find_waiter_matches(
+        "El lugar es perfecto para cenar.",
+        waiters,
+    )
+
+    assert matches == []
+
+
+def test_does_not_match_unrelated_word_similar_to_name():
+    waiters = [
+        {"id": 1, "name": "César"},
+    ]
+
+    matches = find_waiter_matches(
+        "El lugar tiene un pesar enorme.",
+        waiters,
+    )
+
+    assert matches == []
+
+
+def test_matches_common_spelling_variant_of_name():
+    waiters = [
+        {"id": 1, "name": "Cristian"},
+    ]
+
+    matches = find_waiter_matches(
+        "Excelente servicio de Christian.",
+        waiters,
+    )
+
+    assert matches[0]["waiter_id"] == 1
+    assert matches[0]["confidence"] == "medium"
+
+
+def test_matches_transposed_letters_in_name():
+    waiters = [
+        {"id": 1, "name": "Cristian"},
+    ]
+
+    matches = find_waiter_matches(
+        "Excelente servicio de Cristain.",
+        waiters,
+    )
+
+    assert matches[0]["waiter_id"] == 1
+    assert matches[0]["confidence"] == "medium"
+
+
+def test_prefers_exact_name_over_fuzzy_similar_name():
+    waiters = [
+        {"id": 1, "name": "Cristian"},
+        {"id": 2, "name": "Cristina"},
+    ]
+
+    matches = find_waiter_matches(
+        "Excelente atención de Cristina.",
+        waiters,
+    )
+
+    assert matches == [
+        {
+            "waiter_id": 2,
+            "waiter_name": "Cristina",
+            "confidence": "high",
+            "reason": "La reseña menciona explícitamente el nombre Cristina.",
+        }
+    ]
