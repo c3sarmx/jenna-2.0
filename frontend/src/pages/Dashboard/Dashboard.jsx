@@ -25,6 +25,8 @@ function getGreeting() {
   return "Buenas noches,";
 }
 
+const SHOW_SOURCE_ANALYTICS = false;
+
 function Dashboard({ business, onNavigate }) {
   const [analytics, setAnalytics] = useState(null);
   const [cards, setCards] = useState([]);
@@ -322,8 +324,9 @@ function Dashboard({ business, onNavigate }) {
       </section>
 
       <section className="dashboard-secondary">
-        <motion.article
-          className="source-panel"
+        {SHOW_SOURCE_ANALYTICS && (
+          <motion.article
+            className="source-panel"
           initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{
@@ -366,7 +369,8 @@ function Dashboard({ business, onNavigate }) {
               </div>
             ))}
           </div>
-        </motion.article>
+          </motion.article>
+        )}
 
         <motion.article
           className="status-panel"
