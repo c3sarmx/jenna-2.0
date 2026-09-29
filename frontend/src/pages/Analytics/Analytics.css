@@ -828,6 +828,8 @@
   .review-evidence-overlay {
     padding: 0;
     align-items: flex-end;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
   }
 
   .review-evidence-modal {
