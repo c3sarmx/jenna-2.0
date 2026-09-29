@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { motion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 import ActivityChart from "../../components/ActivityChart/ActivityChart";
 import ErrorState from "../../components/ErrorState/ErrorState";
 import LoadingState from "../../components/LoadingState/LoadingState";
@@ -68,11 +68,53 @@ function addDaysToDate(dateString, days) {
   return formatDateInput(date);
 }
 
+function getCalendarDays(monthDate) {
+  const year = monthDate.getFullYear();
+  const month = monthDate.getMonth();
+
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+
+  const start = new Date(firstDay);
+  const startDay = start.getDay();
+  const daysSinceMonday = startDay === 0 ? 6 : startDay - 1;
+  start.setDate(start.getDate() - daysSinceMonday);
+
+  const end = new Date(lastDay);
+  const endDay = end.getDay();
+  const daysUntilSunday = endDay === 0 ? 0 : 7 - endDay;
+  end.setDate(end.getDate() + daysUntilSunday);
+
+  const days = [];
+  const cursor = new Date(start);
+
+  while (cursor <= end) {
+    days.push(new Date(cursor));
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  return days;
+}
+
+function isDateInRange(dateString, start, end) {
+  return (
+    Boolean(start) &&
+    Boolean(end) &&
+    dateString >= start &&
+    dateString <= end
+  );
+}
+
 function Analytics({ business }) {
   const [analytics, setAnalytics] = useState(null);
   const [weeklyAnalytics, setWeeklyAnalytics] = useState(null);
   const [selectedWeekStart, setSelectedWeekStart] =
     useState(getCurrentWeekStart());
+  const [isWeekPickerOpen, setIsWeekPickerOpen] = useState(false);
+  const [calendarMonth, setCalendarMonth] = useState(
+    new Date(`${getCurrentWeekStart()}T00:00:00`)
+  );
+
   const [period, setPeriod] = useState("30d");
   const [loading, setLoading] = useState(true);
   const [weeklyLoading, setWeeklyLoading] = useState(false);
@@ -85,6 +127,55 @@ function Analytics({ business }) {
 
   const selectedPeriod =
     PERIODS.find((item) => item.value === period) ?? PERIODS[2];
+
+
+
+
+  function selectCalendarWeek(dateString) {
+    const selectedDate = new Date(`${dateString}T00:00:00`);
+    const day = selectedDate.getDay();
+    const daysSinceMonday = day === 0 ? 6 : day - 1;
+
+    const weekStartDate = new Date(selectedDate);
+    weekStartDate.setDate(
+      selectedDate.getDate() - daysSinceMonday
+    );
+
+    setSelectedWeekStart(formatDateInput(weekStartDate));
+    setIsWeekPickerOpen(false);
+  }
+
+  function goToCurrentWeek() {
+    const currentWeekStart = getCurrentWeekStart();
+
+    setSelectedWeekStart(currentWeekStart);
+    setCalendarMonth(
+      new Date(`${currentWeekStart}T00:00:00`)
+    );
+    setIsWeekPickerOpen(false);
+  }
+
+  useEffect(() => {
+    function handleWeekPickerKeyDown(event) {
+      if (event.key === "Escape") {
+        setIsWeekPickerOpen(false);
+      }
+    }
+
+    if (isWeekPickerOpen) {
+      document.addEventListener(
+        "keydown",
+        handleWeekPickerKeyDown
+      );
+    }
+
+    return () => {
+      document.removeEventListener(
+        "keydown",
+        handleWeekPickerKeyDown
+      );
+    };
+  }, [isWeekPickerOpen]);
 
   const WEEK_DAYS = [
     ["monday", 0],
@@ -121,6 +212,30 @@ function Analytics({ business }) {
 
     loadAnalytics();
   }, [business.id, selectedPeriod.days, retryKey]);
+
+  useEffect(() => {
+    function handleWeekPickerOutsideClick(event) {
+      if (!isWeekPickerOpen) {
+        return;
+      }
+
+      if (!event.target.closest(".weekly-picker")) {
+        setIsWeekPickerOpen(false);
+      }
+    }
+
+    document.addEventListener(
+      "mousedown",
+      handleWeekPickerOutsideClick
+    );
+
+    return () => {
+      document.removeEventListener(
+        "mousedown",
+        handleWeekPickerOutsideClick
+      );
+    };
+  }, [isWeekPickerOpen]);
 
   useEffect(() => {
     async function loadWeeklyAnalytics() {
@@ -435,20 +550,178 @@ function Analytics({ business }) {
                 ‹
               </button>
 
-              <span className="weekly-navigation-range">
-                {formatWeekRange(
-                  weeklyAnalytics.week_start,
-                  weeklyAnalytics.week_end
+              <div className="weekly-picker">
+                <button
+                  type="button"
+                  className="weekly-navigation-range"
+                  aria-expanded={isWeekPickerOpen}
+                  aria-label="Seleccionar semana"
+                  onClick={() => {
+                    setCalendarMonth(
+                      new Date(`${selectedWeekStart}T00:00:00`)
+                    );
+                    setIsWeekPickerOpen((open) => !open);
+                  }}
+                >
+                  {formatWeekRange(
+                    selectedWeekStart,
+                    addDaysToDate(selectedWeekStart, 6)
+                  )}
+                  <span aria-hidden="true">⌄</span>
+                </button>
+
+                <AnimatePresence>
+                  {isWeekPickerOpen && (
+                    <motion.div
+  className="weekly-picker-popover"
+  initial={{ opacity: 0, y: -6, scale: 0.98 }}
+  animate={{ opacity: 1, y: 0, scale: 1 }}
+  exit={{ opacity: 0, y: -4, scale: 0.985 }}
+  transition={{ duration: 0.18, ease: "easeOut" }}
+>
+                    <div className="weekly-picker-header">
+                      <button
+                        type="button"
+                        className="weekly-picker-month-button"
+                        aria-label="Mes anterior"
+                        onClick={() => {
+                          const previousMonth = new Date(
+                            calendarMonth
+                          );
+                          previousMonth.setMonth(
+                            previousMonth.getMonth() - 1
+                          );
+                          setCalendarMonth(previousMonth);
+                        }}
+                      >
+                        ‹
+                      </button>
+
+                      <strong>
+                        {new Intl.DateTimeFormat("es-MX", {
+                          month: "long",
+                          year: "numeric",
+                        })
+                          .format(calendarMonth)
+                          .replace(" de ", " ")}
+                      </strong>
+
+                      <button
+                        type="button"
+                        className="weekly-picker-month-button"
+                        aria-label="Mes siguiente"
+                        disabled={
+                          calendarMonth.getFullYear() >
+                            new Date().getFullYear() ||
+                          (
+                            calendarMonth.getFullYear() ===
+                              new Date().getFullYear() &&
+                            calendarMonth.getMonth() >=
+                              new Date().getMonth()
+                          )
+                        }
+                        onClick={() => {
+                          const nextMonth = new Date(calendarMonth);
+                          nextMonth.setMonth(
+                            nextMonth.getMonth() + 1
+                          );
+                          setCalendarMonth(nextMonth);
+                        }}
+                      >
+                        ›
+                      </button>
+                    </div>
+
+                    {selectedWeekStart !== getCurrentWeekStart() && (
+                      <button
+                        type="button"
+                        className="weekly-picker-current-week"
+                        onClick={goToCurrentWeek}
+                      >
+                        <span>Hoy</span>
+                        <span>
+                          {formatWeekRange(
+                            getCurrentWeekStart(),
+                            addDaysToDate(getCurrentWeekStart(), 6)
+                          )}
+                        </span>
+                      </button>
+                    )}
+
+                    <div className="weekly-picker-weekdays">
+                      {["Lu", "Ma", "Mi", "Ju", "Vi", "Sá", "Do"].map(
+                        (day) => (
+                          <span key={day}>{day}</span>
+                        )
+                      )}
+                    </div>
+
+                    <div className="weekly-picker-grid">
+                      {getCalendarDays(calendarMonth).map((date) => {
+                        const dateString = formatDateInput(date);
+                        const today = new Date();
+                        const isCurrentMonth =
+                          date.getMonth() === calendarMonth.getMonth();
+                        const isFuture =
+                          dateString > formatDateInput(today);
+                        const isToday =
+                          dateString === formatDateInput(today);
+                        const selectedWeekEnd =
+                          addDaysToDate(selectedWeekStart, 6);
+                        const isStart =
+                          dateString === selectedWeekStart;
+                        const isEnd =
+                          dateString === selectedWeekEnd;
+                        const isInRange = isDateInRange(
+                          dateString,
+                          selectedWeekStart,
+                          selectedWeekEnd
+                        );
+
+                        return (
+                          <button
+                            key={dateString}
+                            type="button"
+                            className={[
+                              "weekly-picker-day",
+                              isCurrentMonth
+                                ? ""
+                                : "weekly-picker-day-muted",
+                              isInRange
+                                ? "weekly-picker-day-in-range"
+                                : "",
+                              isStart
+                                ? "weekly-picker-day-start"
+                                : "",
+                              isEnd
+                                ? "weekly-picker-day-end"
+                                : "",
+                              isToday
+                                ? "weekly-picker-day-today"
+                                : "",
+                            ]
+                              .filter(Boolean)
+                              .join(" ")}
+                            disabled={isFuture}
+                            onClick={() =>
+                              selectCalendarWeek(dateString)
+                            }
+                          >
+                            {date.getDate()}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </motion.div>
                 )}
-              </span>
+                </AnimatePresence>
+              </div>
 
               <button
                 type="button"
                 className="weekly-navigation-button"
                 aria-label="Semana siguiente"
-                disabled={
-                  selectedWeekStart >= getCurrentWeekStart()
-                }
+                disabled={selectedWeekStart >= getCurrentWeekStart()}
                 onClick={() =>
                   setSelectedWeekStart(
                     addDaysToDate(selectedWeekStart, 7)
@@ -472,7 +745,9 @@ function Analytics({ business }) {
           <small>reseñas atribuidas / semana</small>
         </div>
 
-        {!weeklyAnalytics ||
+        {weeklyLoading ? (
+          <LoadingState message="Cargando semana..." />
+        ) : !weeklyAnalytics ||
         weeklyAnalytics.waiters.length === 0 ? (
           <p className="analytics-empty">
             Todavía no hay meseros activos para mostrar.
