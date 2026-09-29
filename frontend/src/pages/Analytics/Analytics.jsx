@@ -188,6 +188,19 @@ function Analytics({ business }) {
   ];
 
   useEffect(() => {
+    if (selectedEvidence === null) {
+      return undefined;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [selectedEvidence]);
+
+  useEffect(() => {
     async function loadAnalytics() {
       try {
         setLoading(true);
