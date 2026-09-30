@@ -215,7 +215,7 @@ function ActivityChart({
         <div className="chart-empty-state">
           <strong>Sin interacciones todavía</strong>
           <span>
-            Las interacciones de los últimos 30 días aparecerán aquí.
+            Las interacciones de {periodLabel.toLowerCase()} aparecerán aquí.
           </span>
         </div>
       )}
