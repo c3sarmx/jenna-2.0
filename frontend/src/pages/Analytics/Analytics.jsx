@@ -362,9 +362,9 @@ function Analytics({ business }) {
         : 0,
   }));
 
-  const waiterRanking = [...analytics.taps_by_waiter].sort(
-    (a, b) => b.total_taps - a.total_taps
-  );
+  const waiterRanking = [...analytics.taps_by_waiter]
+    .filter((waiter) => Number(waiter.total_taps) > 0)
+    .sort((a, b) => b.total_taps - a.total_taps);
 
   const selectedEvidenceCount = selectedEvidence?.length ?? 0;
 
@@ -533,10 +533,6 @@ function Analytics({ business }) {
               <strong>{reviewAnalytics.unattributed_reviews}</strong>
             </div>
 
-            <div className="analytics-review-row">
-              <span>Último conteo registrado</span>
-              <strong>{analytics.latest_review_count}</strong>
-            </div>
           </div>
         </article>
       </section>
