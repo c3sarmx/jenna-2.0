@@ -341,10 +341,6 @@ function Dashboard({ business, onNavigate }) {
               <strong>{reviewAnalytics.unattributed_reviews}</strong>
             </div>
 
-            <div className="review-summary-external">
-              <span>Reseñas en Google</span>
-              <strong>{analytics.latest_review_count}</strong>
-            </div>
           </div>
         </motion.article>
       </section>
