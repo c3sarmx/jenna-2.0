@@ -183,6 +183,10 @@ function Dashboard({ business, onNavigate }) {
     .sort((a, b) => b.total_taps - a.total_taps)
     .slice(0, 5);
 
+  const hasWaiterActivity = waiterActivity.some(
+    (waiter) => Number(waiter.total_taps) > 0
+  );
+
   const maxWaiterTaps = waiterActivity[0]?.total_taps ?? 0;
 
   const today = new Date().toLocaleDateString("es-MX", {
@@ -451,7 +455,7 @@ function Dashboard({ business, onNavigate }) {
         </div>
 
         <div className="waiter-activity">
-          {waiterActivity.length === 0 ? (
+          {!hasWaiterActivity ? (
             <p className="empty-state">
               Todavía no hay interacciones registradas.
             </p>

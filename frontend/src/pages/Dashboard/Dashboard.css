@@ -472,8 +472,13 @@
   font-variant-numeric: tabular-nums;
 }
 
-.empty-state {
-  margin: 2.5rem 0 0;
+.waiter-activity:has(.empty-state) {
+  min-height: 9rem;
+  place-items: center;
+}
+
+.waiter-activity .empty-state {
+  margin: 0;
   color: var(--color-ink-muted);
   font-size: var(--text-sm);
 }

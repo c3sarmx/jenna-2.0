@@ -148,3 +148,34 @@
     left: 2rem;
   }
 }
+
+.chart-empty-state {
+  position: absolute;
+  top: 50%;
+  left: calc(2.5rem + (100% - 2.5rem) / 2);
+  transform: translate(-50%, -50%);
+  display: grid;
+  gap: 0.35rem;
+  width: min(20rem, calc(100% - 5rem));
+  text-align: center;
+}
+
+.chart-empty-state strong {
+  color: var(--color-ink);
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.chart-empty-state span {
+  color: var(--color-muted);
+  font-size: 0.72rem;
+  line-height: 1.5;
+}
+
+@media (max-width: 600px) {
+  .chart-empty-state {
+    left: calc(2rem + (100% - 2rem) / 2);
+    width: min(18rem, calc(100% - 4rem));
+  }
+}

@@ -43,6 +43,8 @@ function ActivityChart({
     [dailyTaps]
   );
 
+  const hasActivity = normalizedData.some((item) => item.total_taps > 0);
+
   const points = useMemo(() => {
     return normalizedData.map((item, index) => {
       const x =
@@ -93,12 +95,14 @@ function ActivityChart({
       className="activity-chart"
       onMouseLeave={() => setActiveIndex(null)}
     >
-      <div className="chart-y-axis" aria-hidden="true">
-        <span>{maxValue}</span>
-        <span>{Math.round(maxValue * 0.66)}</span>
-        <span>{Math.round(maxValue * 0.33)}</span>
-        <span>0</span>
-      </div>
+      {hasActivity && (
+        <div className="chart-y-axis" aria-hidden="true">
+          <span>{maxValue}</span>
+          <span>{Math.round(maxValue * 0.66)}</span>
+          <span>{Math.round(maxValue * 0.33)}</span>
+          <span>0</span>
+        </div>
+      )}
 
       <svg
         className="chart-svg"
@@ -128,14 +132,16 @@ function ActivityChart({
           </linearGradient>
         </defs>
 
-        <g className="chart-grid-lines">
-          <line x1="0" y1="12" x2="100" y2="12" />
-          <line x1="0" y1="38" x2="100" y2="38" />
-          <line x1="0" y1="64" x2="100" y2="64" />
-          <line x1="0" y1="92" x2="100" y2="92" />
-        </g>
+        {hasActivity && (
+          <g className="chart-grid-lines">
+            <line x1="0" y1="12" x2="100" y2="12" />
+            <line x1="0" y1="38" x2="100" y2="38" />
+            <line x1="0" y1="64" x2="100" y2="64" />
+            <line x1="0" y1="92" x2="100" y2="92" />
+          </g>
+        )}
 
-        {points.length > 0 && (
+        {hasActivity && points.length > 0 && (
           <>
             <motion.polygon
               points={areaPoints}
@@ -204,6 +210,15 @@ function ActivityChart({
           </>
         )}
       </svg>
+
+      {!hasActivity && normalizedData.length > 0 && (
+        <div className="chart-empty-state">
+          <strong>Sin interacciones todavía</strong>
+          <span>
+            Las interacciones de los últimos 30 días aparecerán aquí.
+          </span>
+        </div>
+      )}
 
       {activePoint && (
         <motion.div
