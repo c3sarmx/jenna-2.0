@@ -49,7 +49,7 @@ class FakeResponse:
 
 def test_get_place_reviews_returns_normalized_reviews(monkeypatch):
     monkeypatch.setenv(
-        "GOOGLE_PLACES_LEGACY_API_KEY",
+        "GOOGLE_PLACES_API_KEY",
         "test-api-key",
     )
 
@@ -98,7 +98,7 @@ def test_get_place_reviews_returns_empty_list_when_reviews_missing(
     monkeypatch,
 ):
     monkeypatch.setenv(
-        "GOOGLE_PLACES_LEGACY_API_KEY",
+        "GOOGLE_PLACES_API_KEY",
         "test-api-key",
     )
 
@@ -123,12 +123,12 @@ def test_get_place_reviews_requires_place_id():
 
 def test_get_place_reviews_requires_api_key(monkeypatch):
     monkeypatch.delenv(
-        "GOOGLE_PLACES_LEGACY_API_KEY",
+        "GOOGLE_PLACES_API_KEY",
         raising=False,
     )
 
     with pytest.raises(
         GooglePlacesError,
-        match="GOOGLE_PLACES_LEGACY_API_KEY",
+        match="GOOGLE_PLACES_API_KEY",
     ):
         get_place_reviews(PLACE_ID)

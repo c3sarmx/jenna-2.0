@@ -17,12 +17,12 @@ class GooglePlacesError(RuntimeError):
 
 def _get_api_key():
     api_key = os.environ.get(
-        "GOOGLE_PLACES_LEGACY_API_KEY"
+        "GOOGLE_PLACES_API_KEY"
     )
 
     if not api_key:
         raise GooglePlacesError(
-            "GOOGLE_PLACES_LEGACY_API_KEY environment variable is required"
+            "GOOGLE_PLACES_API_KEY environment variable is required"
         )
 
     return api_key
