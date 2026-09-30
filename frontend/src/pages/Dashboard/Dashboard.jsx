@@ -25,6 +25,27 @@ function getGreeting() {
   return "Buenas noches,";
 }
 
+function formatDateInput(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+function getPeriodDates(days) {
+  const today = new Date();
+  const dateTo = formatDateInput(today);
+
+  const dateFromValue = new Date(today);
+  dateFromValue.setDate(today.getDate() - (days - 1));
+
+  return {
+    dateFrom: formatDateInput(dateFromValue),
+    dateTo,
+  };
+}
+
 const SHOW_SOURCE_ANALYTICS = false;
 
 function Dashboard({ business, onNavigate }) {
@@ -41,9 +62,14 @@ function Dashboard({ business, onNavigate }) {
         setLoading(true);
         setError(null);
 
+        const { dateFrom, dateTo } = getPeriodDates(30);
+
         const [analyticsData, cardsData, waitersData] =
           await Promise.all([
-            getAnalytics(business.id),
+            getAnalytics(business.id, {
+              dateFrom,
+              dateTo,
+            }),
             getCards(business.id),
             getWaiters(business.id),
           ]);
