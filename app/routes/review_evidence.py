@@ -6,6 +6,7 @@ from app.auth.decorators import require_business_access
 from app.services.review_evidence import (
     create_review_evidence,
     get_review_evidence_by_business,
+    get_review_evidence_page,
 )
 
 
@@ -84,6 +85,73 @@ def create_review_evidence_route(business_id):
         "fingerprint": evidence[9],
         "imported_at": evidence[10].isoformat(),
     }), 201
+
+
+@review_evidence_bp.get("/businesses/<int:business_id>/review-evidence/page")
+@require_business_access
+def get_review_evidence_page_route(business_id):
+    try:
+        page = int(request.args.get("page", 1))
+        per_page = int(request.args.get("per_page", 20))
+    except (TypeError, ValueError):
+        return jsonify({
+            "error": "page and per_page must be integers"
+        }), 400
+
+    status = request.args.get("status", "all")
+    search = request.args.get("search")
+    date_from = request.args.get("from")
+    date_to = request.args.get("to")
+
+    try:
+        result = get_review_evidence_page(
+            business_id,
+            page=page,
+            per_page=per_page,
+            status=status,
+            search=search,
+            date_from=date_from,
+            date_to=date_to,
+        )
+    except ValueError as exc:
+        return jsonify({
+            "error": str(exc)
+        }), 400
+
+    return jsonify({
+        "items": [
+            {
+                "id": item[0],
+                "business_id": item[1],
+                "source": item[2],
+                "external_id": item[3],
+                "reviewer_name": item[4],
+                "rating": item[5],
+                "content": item[6],
+                "published_at": (
+                    item[7].isoformat()
+                    if item[7]
+                    else None
+                ),
+                "source_url": item[8],
+                "fingerprint": item[9],
+                "imported_at": item[10].isoformat(),
+                "translated_content": (
+                    item[11]
+                    if len(item) > 11
+                    else None
+                ),
+                "has_attribution": item[12],
+            }
+            for item in result["items"]
+        ],
+        "page": result["page"],
+        "per_page": result["per_page"],
+        "total": result["total"],
+        "attributed_total": result["attributed_total"],
+        "unattributed_total": result["unattributed_total"],
+        "total_pages": result["total_pages"],
+    }), 200
 
 
 @review_evidence_bp.get("/businesses/<int:business_id>/review-evidence")

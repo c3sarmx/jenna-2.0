@@ -3,7 +3,7 @@ import {
   createReviewAttribution,
   createReviewEvidence,
   getReviewAttributions,
-  getReviewEvidence,
+  getReviewEvidencePage,
   getWaiters,
 } from "../../services/api";
 import ErrorState from "../../components/ErrorState/ErrorState";
@@ -37,6 +37,12 @@ function ReviewStars({ rating }) {
 
 function Reviews({ business }) {
   const [reviews, setReviews] = useState([]);
+  const [reviewPage, setReviewPage] = useState(1);
+  const [reviewTotalPages, setReviewTotalPages] = useState(0);
+  const [reviewTotal, setReviewTotal] = useState(0);
+  const [reviewAttributedTotal, setReviewAttributedTotal] = useState(0);
+  const [reviewUnattributedTotal, setReviewUnattributedTotal] =
+    useState(0);
   const [attributions, setAttributions] = useState([]);
   const [waiters, setWaiters] = useState([]);
 
@@ -55,6 +61,9 @@ function Reviews({ business }) {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [activeDateFilter, setActiveDateFilter] = useState("Todas");
+  const [reviewSearch, setReviewSearch] = useState("");
+  const [reviewSearchQuery, setReviewSearchQuery] = useState("");
+  const [reviewStatus, setReviewStatus] = useState("all");
 
   const [selectedWaiter, setSelectedWaiter] = useState("");
   const [confidence, setConfidence] = useState("confirmed");
@@ -63,9 +72,22 @@ function Reviews({ business }) {
   const [saving, setSaving] = useState(false);
   const [actionError, setActionError] = useState(null);
 
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setReviewSearchQuery(reviewSearch.trim());
+    }, 300);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [reviewSearch]);
+
   async function loadReviews(
     nextDateFrom = dateFrom,
     nextDateTo = dateTo,
+    nextPage = reviewPage,
+    nextSearch = reviewSearchQuery,
+    nextStatus = reviewStatus,
     showLoading = true
   ) {
     try {
@@ -79,7 +101,11 @@ function Reviews({ business }) {
         attributionsData,
         waitersData,
       ] = await Promise.all([
-        getReviewEvidence(business.id, {
+        getReviewEvidencePage(business.id, {
+          page: nextPage,
+          perPage: 20,
+          search: nextSearch,
+          status: nextStatus,
           dateFrom: nextDateFrom,
           dateTo: nextDateTo,
         }),
@@ -87,7 +113,12 @@ function Reviews({ business }) {
         getWaiters(business.id),
       ]);
 
-      setReviews(reviewsData);
+      setReviews(reviewsData.items);
+      setReviewPage(reviewsData.page);
+      setReviewTotalPages(reviewsData.total_pages);
+      setReviewTotal(reviewsData.total);
+      setReviewAttributedTotal(reviewsData.attributed_total);
+      setReviewUnattributedTotal(reviewsData.unattributed_total);
       setAttributions(attributionsData);
       setWaiters(waitersData);
     } catch (requestError) {
@@ -99,9 +130,39 @@ function Reviews({ business }) {
     }
   }
 
+  async function handleReviewPageChange(nextPage) {
+    if (
+      nextPage < 1 ||
+      nextPage > reviewTotalPages ||
+      nextPage === reviewPage
+    ) {
+      return;
+    }
+
+    await loadReviews(
+      dateFrom,
+      dateTo,
+      nextPage
+    );
+  }
+
   useEffect(() => {
-    loadReviews();
+    setReviewPage(1);
+    loadReviews(dateFrom, dateTo, 1);
   }, [business.id]);
+
+  useEffect(() => {
+    if (reviewSearchQuery === reviewSearch.trim()) {
+      loadReviews(
+        dateFrom,
+        dateTo,
+        1,
+        reviewSearchQuery,
+        reviewStatus,
+        false
+      );
+    }
+  }, [reviewSearchQuery]);
 
   const attributionsByReview = useMemo(() => {
     const grouped = new Map();
@@ -137,10 +198,18 @@ function Reviews({ business }) {
     );
   }, [attributions, reviews]);
 
-  const attributedCount = attributedReviewIds.size;
+  const attributedCount = reviewAttributedTotal;
+  const unattributedCount = reviewUnattributedTotal;
 
-  const unattributedCount =
-    reviews.length - attributedCount;
+  const reviewRangeStart =
+    reviewTotal === 0
+      ? 0
+      : (reviewPage - 1) * 20 + 1;
+
+  const reviewRangeEnd =
+    reviewTotal === 0
+      ? 0
+      : Math.min(reviewPage * 20, reviewTotal);
 
   function openAttribution(review) {
     setSelectedReview(review);
@@ -241,7 +310,7 @@ function Reviews({ business }) {
       <div className="reviews reviews-state">
         <ErrorState
           error={error}
-          onRetry={loadReviews}
+          onRetry={() => loadReviews()}
         />
       </div>
     );
@@ -280,7 +349,7 @@ function Reviews({ business }) {
       <section className="reviews-summary">
         <article>
           <span>Registradas</span>
-          <strong>{reviews.length}</strong>
+          <strong>{reviewTotal}</strong>
         </article>
 
         <article>
@@ -293,6 +362,21 @@ function Reviews({ business }) {
           <strong>{Math.max(unattributedCount, 0)}</strong>
         </article>
       </section>
+
+      <div className="reviews-search">
+        <label htmlFor="reviews-search-input">
+          Buscar reseñas
+        </label>
+
+        <input
+          id="reviews-search-input"
+          type="search"
+          value={reviewSearch}
+          onChange={(event) => setReviewSearch(event.target.value)}
+          placeholder="Nombre, contenido o traducción"
+          autoComplete="off"
+        />
+      </div>
 
       <div className="reviews-filters" aria-label="Filtrar reseñas por fecha">
         {[
@@ -315,7 +399,7 @@ function Reviews({ business }) {
                   setDateFrom("");
                   setDateTo("");
                   setActiveDateFilter("Todas");
-                  loadReviews("", "", false);
+                  loadReviews("", "", 1, reviewSearchQuery, reviewStatus, false);
                   return;
                 }
 
@@ -334,7 +418,43 @@ function Reviews({ business }) {
                 setDateFrom(nextDateFrom);
                 setDateTo(nextDateTo);
                 setActiveDateFilter(filter.label);
-                loadReviews(nextDateFrom, nextDateTo, false);
+                loadReviews(nextDateFrom, nextDateTo, 1, reviewSearchQuery, reviewStatus, false);
+              }}
+            >
+              {filter.label}
+            </button>
+          );
+        })}
+      </div>
+
+      <div
+        className="reviews-secondary-filters"
+        aria-label="Filtrar reseñas por atribución"
+      >
+        {[
+          { value: "all", label: "Todas" },
+          { value: "attributed", label: "Atribuidas" },
+          { value: "unattributed", label: "Sin atribución" },
+        ].map((filter) => {
+          const isActive = reviewStatus === filter.value;
+
+          return (
+            <button
+              key={filter.value}
+              type="button"
+              className={`reviews-filter ${
+                isActive ? "reviews-filter-active" : ""
+              }`}
+              onClick={() => {
+                setReviewStatus(filter.value);
+                loadReviews(
+                  dateFrom,
+                  dateTo,
+                  1,
+                  reviewSearchQuery,
+                  filter.value,
+                  false
+                );
               }}
             >
               {filter.label}
@@ -438,7 +558,7 @@ function Reviews({ business }) {
             <h2>Reseñas registradas</h2>
           </div>
 
-          <span>{reviews.length} registros</span>
+          <span>{reviewTotal} registros</span>
         </div>
 
         {reviews.length === 0 ? (
@@ -450,7 +570,8 @@ function Reviews({ business }) {
             </span>
           </div>
         ) : (
-          <div className="reviews-list">
+          <>
+            <div className="reviews-list">
             {reviews.map((review) => {
               const reviewAttributions =
                 attributionsByReview.get(review.id) ?? [];
@@ -574,6 +695,45 @@ function Reviews({ business }) {
               );
             })}
           </div>
+
+          {reviewTotalPages > 1 && (
+            <div className="reviews-pagination">
+              <span className="reviews-pagination-summary">
+                Mostrando {reviewRangeStart}–{reviewRangeEnd} de {reviewTotal}
+              </span>
+
+              <div className="reviews-pagination-controls">
+                <button
+                  type="button"
+                  className="reviews-pagination-button"
+                  onClick={() =>
+                    handleReviewPageChange(reviewPage - 1)
+                  }
+                  disabled={reviewPage === 1}
+                >
+                  Anterior
+                </button>
+
+                <span className="reviews-pagination-page">
+                  {reviewPage} / {reviewTotalPages}
+                </span>
+
+                <button
+                  type="button"
+                  className="reviews-pagination-button"
+                  onClick={() =>
+                    handleReviewPageChange(reviewPage + 1)
+                  }
+                  disabled={
+                    reviewPage === reviewTotalPages
+                  }
+                >
+                  Siguiente
+                </button>
+              </div>
+            </div>
+          )}
+          </>
         )}
       </section>
 

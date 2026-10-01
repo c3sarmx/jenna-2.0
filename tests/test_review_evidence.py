@@ -268,3 +268,63 @@ def test_create_review_evidence_rejects_invalid_published_at():
     assert response.get_json() == {
         "error": "invalid published_at"
     }
+
+
+def test_get_review_evidence_page_success():
+    client = make_app().test_client()
+    login_session(client)
+
+    result = {
+        "items": [
+            (
+                1,
+                4,
+                "manual_import",
+                "review-001",
+                "Juan Pérez",
+                5,
+                "Excelente atención de César.",
+                datetime(2026, 9, 10, 20, 30),
+                "https://example.com/review-001",
+                "b" * 64,
+                datetime(2026, 9, 10, 21, 0),
+                "Excellent service.",
+                True,
+            ),
+        ],
+        "page": 1,
+        "per_page": 20,
+        "total": 41,
+        "attributed_total": 28,
+        "unattributed_total": 13,
+        "total_pages": 3,
+    }
+
+    with patch(
+        "app.auth.decorators.user_has_business_access",
+        return_value=True,
+    ), patch(
+        "app.routes.review_evidence.get_review_evidence_page",
+        return_value=result,
+    ):
+        response = client.get(
+            "/api/businesses/4/review-evidence/page"
+            "?page=1&per_page=20&status=all"
+        )
+
+    assert response.status_code == 200
+
+    body = response.get_json()
+
+    assert body["page"] == 1
+    assert body["per_page"] == 20
+    assert body["total"] == 41
+    assert body["attributed_total"] == 28
+    assert body["unattributed_total"] == 13
+    assert body["total_pages"] == 3
+
+    assert len(body["items"]) == 1
+    assert body["items"][0]["id"] == 1
+    assert body["items"][0]["reviewer_name"] == "Juan Pérez"
+    assert body["items"][0]["translated_content"] == "Excellent service."
+    assert body["items"][0]["has_attribution"] is True

@@ -217,6 +217,40 @@ export async function getReviewEvidence(
   );
 }
 
+export async function getReviewEvidencePage(
+  businessId,
+  {
+    page = 1,
+    perPage = 20,
+    status = "all",
+    search = "",
+    dateFrom,
+    dateTo,
+  } = {}
+) {
+  const params = new URLSearchParams();
+
+  params.set("page", page);
+  params.set("per_page", perPage);
+  params.set("status", status);
+
+  if (search) {
+    params.set("search", search);
+  }
+
+  if (dateFrom) {
+    params.set("from", dateFrom);
+  }
+
+  if (dateTo) {
+    params.set("to", dateTo);
+  }
+
+  return request(
+    `/businesses/${businessId}/review-evidence/page?${params.toString()}`
+  );
+}
+
 export async function createReviewEvidence(
   businessId,
   {
