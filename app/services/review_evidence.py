@@ -370,7 +370,7 @@ def get_review_evidence_page(
                     {attribution_exists} AS has_attribution
                 FROM review_evidence AS re
                 WHERE {where_clause}
-                ORDER BY re.imported_at DESC, re.id DESC
+                ORDER BY re.published_at DESC NULLS LAST, re.id DESC
                 LIMIT %s
                 OFFSET %s;
                 """,
