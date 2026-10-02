@@ -72,6 +72,8 @@ function Cards({ business }) {
       return;
     }
 
+    const whatsappWindow = window.open("", "_blank");
+
     try {
       setSaving(true);
       setActionError(null);
@@ -98,16 +100,24 @@ function Cards({ business }) {
         cardUrl,
       ].join("\n");
 
-      window.open(
-        `https://wa.me/525612509394?text=${encodeURIComponent(message)}`,
-        "_blank"
-      );
+      const whatsappUrl =
+        `https://wa.me/525612509394?text=${encodeURIComponent(message)}`;
+
+      if (whatsappWindow) {
+        whatsappWindow.location.href = whatsappUrl;
+      } else {
+        window.location.href = whatsappUrl;
+      }
 
       setSelectedWaiter("");
       setShowCreateForm(false);
 
       setRetryKey((value) => value + 1);
     } catch (requestError) {
+      if (whatsappWindow) {
+        whatsappWindow.close();
+      }
+
       setActionError(requestError);
     } finally {
       setSaving(false);
