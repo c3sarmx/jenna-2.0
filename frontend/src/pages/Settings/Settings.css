@@ -231,9 +231,12 @@
 }
 
 .settings-sync-health-heading {
+  margin-bottom: 1rem;
+}
+
+.settings-sync-health-heading > div {
   display: grid;
   gap: 0.3rem;
-  margin-bottom: 1rem;
 }
 
 .settings-sync-health-heading strong {
@@ -289,6 +292,10 @@
 .settings-sync-health-error small {
   color: var(--color-ink-muted);
   font-size: var(--text-xs);
+}
+
+.settings-sync-health + .settings-actions {
+  margin-top: 1.5rem;
 }
 
 .settings-sync-panel {
