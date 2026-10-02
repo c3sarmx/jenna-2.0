@@ -76,9 +76,31 @@ function Cards({ business }) {
       setSaving(true);
       setActionError(null);
 
-      await createCard(
+      const createdCard = await createCard(
         business.id,
         Number(selectedWaiter)
+      );
+
+      const waiter = waiters.find(
+        (item) => item.id === Number(selectedWaiter)
+      );
+
+      const cardUrl =
+        `https://dukkah.jenna.lat/api/r/${createdCard.public_id}`;
+
+      const message = [
+        "🟢 Nueva tarjeta Dukkah",
+        `Negocio: ${business.name}`,
+        `Mesero: ${waiter?.name ?? "Sin nombre"}`,
+        `Tarjeta: #${createdCard.id}`,
+        "",
+        "Liga para QR/NFC:",
+        cardUrl,
+      ].join("\n");
+
+      window.open(
+        `https://wa.me/525612509394?text=${encodeURIComponent(message)}`,
+        "_blank"
       );
 
       setSelectedWaiter("");
