@@ -40,6 +40,12 @@ function Settings({ business }) {
     DEFAULT_SCHEDULE
   );
 
+  const [reviewSyncLastRunAt, setReviewSyncLastRunAt] = useState(null);
+  const [reviewSyncLastErrorAt, setReviewSyncLastErrorAt] = useState(null);
+  const [reviewSyncLastError, setReviewSyncLastError] = useState(null);
+  const [reviewSyncConsecutiveFailures, setReviewSyncConsecutiveFailures] =
+    useState(0);
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savingSync, setSavingSync] = useState(false);
@@ -88,6 +94,13 @@ function Settings({ business }) {
             ...DEFAULT_SCHEDULE,
             ...(data.review_sync.schedule || {}),
           });
+
+          setReviewSyncLastRunAt(data.review_sync.last_run_at || null);
+          setReviewSyncLastErrorAt(data.review_sync.last_error_at || null);
+          setReviewSyncLastError(data.review_sync.last_error || null);
+          setReviewSyncConsecutiveFailures(
+            data.review_sync.consecutive_failures ?? 0
+          );
         }
       } catch (requestError) {
         if (!cancelled) {
@@ -203,6 +216,13 @@ function Settings({ business }) {
           ...DEFAULT_SCHEDULE,
           ...(data.review_sync.schedule || {}),
         });
+
+        setReviewSyncLastRunAt(data.review_sync.last_run_at || null);
+        setReviewSyncLastErrorAt(data.review_sync.last_error_at || null);
+        setReviewSyncLastError(data.review_sync.last_error || null);
+        setReviewSyncConsecutiveFailures(
+          data.review_sync.consecutive_failures ?? 0
+        );
       }
 
       setSyncSaved(true);
@@ -445,6 +465,60 @@ function Settings({ business }) {
               </div>
             ))}
           </div>
+        </div>
+
+        <div className="settings-sync-health">
+          <div className="settings-sync-health-heading">
+            <div>
+              <strong>Estado de sincronización</strong>
+              <span>
+                Información de la última ejecución automática de Dukkah.
+              </span>
+            </div>
+          </div>
+
+          <div className="settings-sync-health-grid">
+            <div className="settings-sync-health-item">
+              <span>Última sincronización</span>
+              <strong>
+                {reviewSyncLastRunAt
+                  ? new Date(reviewSyncLastRunAt).toLocaleString(
+                      "es-MX",
+                      {
+                        dateStyle: "medium",
+                        timeStyle: "short",
+                      }
+                    )
+                  : "Aún no se ha ejecutado"}
+              </strong>
+            </div>
+
+            <div className="settings-sync-health-item">
+              <span>Fallos consecutivos</span>
+              <strong>
+                {reviewSyncConsecutiveFailures}
+              </strong>
+            </div>
+          </div>
+
+          {reviewSyncLastError && (
+            <div className="settings-sync-health-error">
+              <strong>Último error</strong>
+              <span>{reviewSyncLastError}</span>
+
+              {reviewSyncLastErrorAt && (
+                <small>
+                  {new Date(reviewSyncLastErrorAt).toLocaleString(
+                    "es-MX",
+                    {
+                      dateStyle: "medium",
+                      timeStyle: "short",
+                    }
+                  )}
+                </small>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="settings-actions">

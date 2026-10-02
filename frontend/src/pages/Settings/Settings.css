@@ -224,6 +224,73 @@
   }
 }
 
+.settings-sync-health {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--color-line);
+}
+
+.settings-sync-health-heading {
+  display: grid;
+  gap: 0.3rem;
+  margin-bottom: 1rem;
+}
+
+.settings-sync-health-heading strong {
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.settings-sync-health-heading span {
+  color: var(--color-ink-muted);
+  font-size: var(--text-xs);
+}
+
+.settings-sync-health-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.settings-sync-health-item {
+  display: grid;
+  gap: 0.35rem;
+  padding: 1rem;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-raised);
+}
+
+.settings-sync-health-item span {
+  color: var(--color-ink-muted);
+  font-size: var(--text-xs);
+}
+
+.settings-sync-health-item strong {
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.settings-sync-health-error {
+  display: grid;
+  gap: 0.35rem;
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+}
+
+.settings-sync-health-error strong {
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.settings-sync-health-error span,
+.settings-sync-health-error small {
+  color: var(--color-ink-muted);
+  font-size: var(--text-xs);
+}
+
 .settings-sync-panel {
   margin-top: 1.5rem;
 }
