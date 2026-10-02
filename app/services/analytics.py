@@ -3,11 +3,38 @@ from datetime import date, timedelta
 from app.database.connection import get_connection
 
 
+def _set_business_timezone(cur, business_id):
+    cur.execute(
+        """
+        SELECT COALESCE(
+            review_sync_timezone,
+            'America/Mexico_City'
+        )
+        FROM business_settings
+        WHERE business_id = %s;
+        """,
+        (business_id,),
+    )
+
+    row = cur.fetchone()
+    timezone = row[0] if row and row[0] else "America/Mexico_City"
+
+    cur.execute(
+        "SELECT set_config('timezone', %s, false)",
+        (timezone,),
+    )
+
+    cur.execute("SELECT CURRENT_DATE")
+    return cur.fetchone()[0]
+
+
 def get_business_analytics(business_id, date_from=None, date_to=None):
     conn = get_connection()
 
     try:
         with conn.cursor() as cur:
+            local_today = _set_business_timezone(cur, business_id)
+
             taps_conditions = ["business_id = %s"]
             taps_params = [business_id]
 
@@ -157,12 +184,12 @@ def get_business_analytics(business_id, date_from=None, date_to=None):
             if date_from:
                 daily_start = date.fromisoformat(date_from)
             else:
-                daily_start = date.today() - timedelta(days=29)
+                daily_start = local_today - timedelta(days=29)
 
             if date_to:
                 daily_end = date.fromisoformat(date_to)
             else:
-                daily_end = date.today()
+                daily_end = local_today
 
             cur.execute(
                 """
@@ -200,6 +227,8 @@ def get_review_analytics(business_id, date_from=None, date_to=None):
 
     try:
         with conn.cursor() as cur:
+            _set_business_timezone(cur, business_id)
+
             evidence_conditions = ["re.business_id = %s"]
             evidence_params = [business_id]
 
@@ -287,6 +316,8 @@ def get_waiter_daily_analytics(business_id, date_from, date_to):
 
     try:
         with conn.cursor() as cur:
+            _set_business_timezone(cur, business_id)
+
             cur.execute(
                 """
                 SELECT
