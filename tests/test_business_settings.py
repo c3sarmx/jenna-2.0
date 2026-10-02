@@ -246,6 +246,10 @@ def test_get_business_settings_includes_review_sync():
             "mon": {"start": "08:00", "end": "22:00"},
             "fri": {"start": "08:00", "end": "23:00"},
         },
+        datetime(2026, 10, 1, 18, 0),
+        None,
+        None,
+        0,
     )
 
     with patch(
@@ -272,6 +276,10 @@ def test_get_business_settings_includes_review_sync():
             "mon": {"start": "08:00", "end": "22:00"},
             "fri": {"start": "08:00", "end": "23:00"},
         },
+        "last_run_at": "2026-10-01T18:00:00",
+        "last_error_at": None,
+        "last_error": None,
+        "consecutive_failures": 0,
     }
 
 

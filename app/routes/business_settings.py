@@ -18,12 +18,30 @@ def _serialize_review_sync(settings):
     if len(settings) < 9:
         return None
 
-    return {
+    review_sync = {
         "enabled": settings[5],
         "interval_minutes": settings[6],
         "timezone": settings[7],
         "schedule": settings[8],
     }
+
+    if len(settings) >= 13:
+        review_sync.update({
+            "last_run_at": (
+                settings[9].isoformat()
+                if settings[9] is not None
+                else None
+            ),
+            "last_error_at": (
+                settings[10].isoformat()
+                if settings[10] is not None
+                else None
+            ),
+            "last_error": settings[11],
+            "consecutive_failures": settings[12],
+        })
+
+    return review_sync
 
 
 @business_settings_bp.get(
