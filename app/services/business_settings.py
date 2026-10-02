@@ -86,7 +86,10 @@ def get_business_settings(business_id):
                     review_sync_interval_minutes,
                     review_sync_timezone,
                     review_sync_schedule,
-                    review_sync_last_run_at
+                    review_sync_last_run_at,
+                    review_sync_last_error_at,
+                    review_sync_last_error,
+                    review_sync_consecutive_failures
                 FROM business_settings
                 WHERE business_id = %s;
                 """,
@@ -261,7 +264,10 @@ def mark_review_sync_run(business_id):
                 """
                 UPDATE business_settings
                 SET
-                    review_sync_last_run_at = NOW()
+                    review_sync_last_run_at = NOW(),
+                    review_sync_last_error_at = NULL,
+                    review_sync_last_error = NULL,
+                    review_sync_consecutive_failures = 0
                 WHERE business_id = %s
                 RETURNING review_sync_last_run_at;
                 """,
@@ -276,6 +282,40 @@ def mark_review_sync_run(business_id):
             conn.commit()
 
             return result[0]
+
+    finally:
+        conn.close()
+
+
+def mark_review_sync_error(business_id, error_message):
+    conn = get_connection()
+
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                UPDATE business_settings
+                SET
+                    review_sync_last_error_at = NOW(),
+                    review_sync_last_error = %s,
+                    review_sync_consecutive_failures =
+                        review_sync_consecutive_failures + 1
+                WHERE business_id = %s
+                RETURNING
+                    review_sync_last_error_at,
+                    review_sync_consecutive_failures;
+                """,
+                (str(error_message)[:1000], business_id),
+            )
+
+            result = cur.fetchone()
+
+            if result is None:
+                raise ValueError("business settings not found")
+
+            conn.commit()
+
+            return result
 
     finally:
         conn.close()

@@ -1,5 +1,6 @@
 from app.services.business_settings import (
     get_business_settings,
+    mark_review_sync_error,
     mark_review_sync_run,
 )
 from app.services.businesses import get_businesses_with_google_reviews
@@ -102,6 +103,11 @@ def sync_all_google_reviews(now=None):
             })
 
         except Exception as exc:
+            mark_review_sync_error(
+                business_id,
+                str(exc),
+            )
+
             results.append({
                 "business_id": business_id,
                 "business_name": name,

@@ -34,6 +34,9 @@ def make_settings(
         timezone,
         schedule,
         last_run_at,
+        None,
+        None,
+        0,
     )
 
 
@@ -235,6 +238,8 @@ def test_sync_all_google_reviews_continues_after_business_error():
     ), patch(
         "app.jobs.google_reviews.mark_review_sync_run",
     ) as mark_sync_mock, patch(
+        "app.jobs.google_reviews.mark_review_sync_error",
+    ) as mark_error_mock, patch(
         "app.jobs.google_reviews.backfill_review_translations",
         return_value={"translated": 2, "skipped": 0},
     ):
@@ -249,6 +254,11 @@ def test_sync_all_google_reviews_continues_after_business_error():
     assert results[1]["business_id"] == 2
     assert results[1]["status"] == "ok"
     assert results[1]["result"]["imported"] == 3
+
+    mark_error_mock.assert_called_once_with(
+        1,
+        "Google API failed",
+    )
 
 
 def test_sync_all_google_reviews_skips_when_interval_has_not_elapsed():

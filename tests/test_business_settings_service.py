@@ -25,7 +25,10 @@ def test_mark_review_sync_run_updates_timestamp():
         """
                 UPDATE business_settings
                 SET
-                    review_sync_last_run_at = NOW()
+                    review_sync_last_run_at = NOW(),
+                    review_sync_last_error_at = NULL,
+                    review_sync_last_error = NULL,
+                    review_sync_consecutive_failures = 0
                 WHERE business_id = %s
                 RETURNING review_sync_last_run_at;
                 """,

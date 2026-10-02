@@ -114,6 +114,9 @@ CREATE TABLE business_settings (
         DEFAULT 'America/Mexico_City',
     review_sync_schedule JSONB NOT NULL DEFAULT '{}'::jsonb,
     review_sync_last_run_at TIMESTAMPTZ,
+    review_sync_last_error_at TIMESTAMPTZ,
+    review_sync_last_error TEXT,
+    review_sync_consecutive_failures INTEGER NOT NULL DEFAULT 0,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
