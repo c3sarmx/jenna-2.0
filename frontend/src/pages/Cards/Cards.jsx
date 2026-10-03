@@ -19,6 +19,7 @@ function Cards({ business }) {
   const [retryKey, setRetryKey] = useState(0);
   const [actionError, setActionError] = useState(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showInactive, setShowInactive] = useState(false);
   const [selectedWaiter, setSelectedWaiter] = useState("");
   const [selectedCardId, setSelectedCardId] = useState(null);
   const selectedCardIdRef = useRef(null);
@@ -175,6 +176,14 @@ function Cards({ business }) {
     (card) => card.active
   ).length;
 
+  const inactiveCards = cards.filter(
+    (card) => !card.active
+  ).length;
+
+  const visibleCards = cards.filter(
+    (card) => showInactive || card.active
+  );
+
   return (
     <div className="cards-page">
       <motion.header
@@ -272,12 +281,30 @@ function Cards({ business }) {
         </motion.form>
       )}
 
-      {cards.length === 0 ? (
+      {inactiveCards > 0 && (
+        <button
+          className="cards-inactive-toggle"
+          type="button"
+          onClick={() => setShowInactive((visible) => !visible)}
+        >
+          {showInactive
+            ? "Ocultar inactivas"
+            : `Mostrar inactivas (${inactiveCards})`}
+        </button>
+      )}
+
+      {visibleCards.length === 0 ? (
         <div className="cards-empty">
-          <p>No hay tarjetas registradas.</p>
+          <p>
+            {cards.length === 0
+              ? "No hay tarjetas registradas."
+              : "No hay tarjetas activas."}
+          </p>
 
           <span>
-            Crea una tarjeta para comenzar.
+            {cards.length === 0
+              ? "Crea una tarjeta para comenzar."
+              : "Puedes mostrar las tarjetas inactivas con el filtro."}
           </span>
         </div>
       ) : (
@@ -340,10 +367,10 @@ function Cards({ business }) {
               }, 180);
             }}
           >
-            {cards.map((card) => {
+            {visibleCards.map((card) => {
               const isSelected =
                 card.id ===
-                (selectedCardId ?? cards[0]?.id);
+                (selectedCardId ?? visibleCards[0]?.id);
 
               return (
                 <button
@@ -382,9 +409,9 @@ function Cards({ business }) {
           </div>
 
           <div className="wallet-pagination" aria-label="Seleccionar tarjeta">
-            {cards.map((card) => {
+            {visibleCards.map((card) => {
               const isSelected =
-                card.id === (selectedCardId ?? cards[0]?.id);
+                card.id === (selectedCardId ?? visibleCards[0]?.id);
 
               return (
                 <button
@@ -415,8 +442,8 @@ function Cards({ business }) {
 
           {(() => {
             const selectedCard =
-              cards.find((card) => card.id === selectedCardId) ??
-              cards[0];
+              visibleCards.find((card) => card.id === selectedCardId) ??
+              visibleCards[0];
 
             return (
               <AnimatePresence mode="wait" initial={false}>

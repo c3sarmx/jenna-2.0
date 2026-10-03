@@ -19,6 +19,7 @@ function Waiters({ business }) {
   const [retryKey, setRetryKey] = useState(0);
   const [actionError, setActionError] = useState(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showInactive, setShowInactive] = useState(false);
   const [name, setName] = useState("");
 
   useEffect(() => {
@@ -133,6 +134,14 @@ function Waiters({ business }) {
     (waiter) => waiter.active
   ).length;
 
+  const inactiveWaiters = waiters.filter(
+    (waiter) => !waiter.active
+  ).length;
+
+  const visibleWaiters = waiters.filter(
+    (waiter) => showInactive || waiter.active
+  );
+
   const tapsByWaiter = new Map(
     (analytics?.taps_by_waiter ?? []).map((item) => [
       item.waiter_id,
@@ -221,6 +230,18 @@ function Waiters({ business }) {
         </motion.form>
       )}
 
+      {inactiveWaiters > 0 && (
+        <button
+          className="waiters-inactive-toggle"
+          type="button"
+          onClick={() => setShowInactive((visible) => !visible)}
+        >
+          {showInactive
+            ? "Ocultar inactivos"
+            : `Mostrar inactivos (${inactiveWaiters})`}
+        </button>
+      )}
+
       <motion.section
         className="waiters-list"
         initial="hidden"
@@ -243,7 +264,7 @@ function Waiters({ business }) {
             </span>
           </div>
         ) : (
-          waiters.map((waiter) => (
+          visibleWaiters.map((waiter) => (
             <motion.article
               className="waiter-card"
               key={waiter.id}

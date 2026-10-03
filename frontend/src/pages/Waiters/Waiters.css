@@ -58,6 +58,31 @@
   font-size: var(--text-sm);
 }
 
+.waiters-inactive-toggle {
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-ink-muted);
+  font: inherit;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out),
+    background var(--duration-fast) var(--ease-out);
+}
+
+.waiters-inactive-toggle:hover {
+  border-color: var(--color-ink-muted);
+  background: var(--color-surface);
+  color: var(--color-ink);
+}
+
 .waiters-list {
   display: grid;
   margin-top: 0.5rem;

@@ -61,9 +61,29 @@ def update_waiter_status(business_id, waiter_id, active):
             )
 
             waiter = cur.fetchone()
+
+            if not waiter:
+                conn.rollback()
+                return None
+
+            if not active:
+                cur.execute(
+                    """
+                    UPDATE cards
+                    SET active = FALSE
+                    WHERE waiter_id = %s
+                      AND business_id = %s;
+                    """,
+                    (waiter_id, business_id),
+                )
+
             conn.commit()
 
             return waiter
+
+    except Exception:
+        conn.rollback()
+        raise
 
     finally:
         conn.close()
