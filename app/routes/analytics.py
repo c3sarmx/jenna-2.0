@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 
 from flask import Blueprint, jsonify, request
 
@@ -59,12 +59,63 @@ def get_business_analytics_route(business_id):
         date_to=date_to,
     )
 
+    growth = {
+        "taps": None,
+        "reviews": None,
+    }
+
+    if parsed_date_from is not None and parsed_date_to is not None:
+        period_days = (
+            parsed_date_to - parsed_date_from
+        ).days + 1
+
+        previous_date_to = parsed_date_from - timedelta(days=1)
+        previous_date_from = (
+            previous_date_to - timedelta(days=period_days - 1)
+        )
+
+        previous_summary, _, _, _ = get_business_analytics(
+            business_id=business_id,
+            date_from=previous_date_from.isoformat(),
+            date_to=previous_date_to.isoformat(),
+        )
+
+        previous_review_analytics = get_review_analytics(
+            business_id=business_id,
+            date_from=previous_date_from.isoformat(),
+            date_to=previous_date_to.isoformat(),
+        )
+
+        previous_taps = previous_summary[0]
+        previous_reviews = previous_review_analytics[
+            "total_review_evidence"
+        ]
+
+        if previous_taps > 0:
+            growth["taps"] = round(
+                ((summary[0] - previous_taps) / previous_taps) * 100,
+                1,
+            )
+
+        if previous_reviews > 0:
+            growth["reviews"] = round(
+                (
+                    (
+                        review_analytics["total_review_evidence"]
+                        - previous_reviews
+                    )
+                    / previous_reviews
+                ) * 100,
+                1,
+            )
+
     return jsonify({
         "business_id": business_id,
         "total_taps": summary[0],
         "total_waiters": summary[1],
         "latest_review_count": summary[2],
         "review_analytics": review_analytics,
+        "growth": growth,
         "taps_by_source": {
             "nfc": summary[3],
             "qr": summary[4],

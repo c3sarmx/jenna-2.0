@@ -1,5 +1,6 @@
 from hashlib import sha256
 import re
+from zoneinfo import ZoneInfo
 
 from psycopg.errors import UniqueViolation
 
@@ -63,6 +64,11 @@ def create_review_evidence(
     source_url=None,
     translated_content=None,
 ):
+    if published_at is not None and published_at.tzinfo is None:
+        published_at = published_at.replace(
+            tzinfo=ZoneInfo("America/Mexico_City")
+        )
+
     fingerprint = build_review_fingerprint(
         reviewer_name=reviewer_name,
         rating=rating,

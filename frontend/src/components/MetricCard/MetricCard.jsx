@@ -26,7 +26,7 @@ function AnimatedNumber({ value }) {
   return <>{displayValue}</>;
 }
 
-function MetricCard({ label, value, detail, accent = false }) {
+function MetricCard({ label, value, detail, growth = null, accent = false }) {
   return (
     <motion.article
       className={`metric-card ${accent ? "metric-card-accent" : ""}`}
@@ -64,6 +64,18 @@ function MetricCard({ label, value, detail, accent = false }) {
           <AnimatedNumber value={value} />
         </motion.strong>
       </div>
+
+      {growth !== null && (
+        <span
+          className={`metric-card-growth ${
+            growth >= 0
+              ? "metric-card-growth-positive"
+              : "metric-card-growth-negative"
+          }`}
+        >
+          {growth >= 0 ? "↑" : "↓"} {Math.abs(growth)}% vs periodo anterior
+        </span>
+      )}
 
       <p>{detail}</p>
     </motion.article>

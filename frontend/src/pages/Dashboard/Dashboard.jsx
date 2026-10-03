@@ -134,14 +134,16 @@ function Dashboard({ business, onNavigate }) {
 
   const metrics = [
     {
-      label: "Interacciones",
+      label: "Alcance",
       value: analytics.total_taps,
-      detail: "Durante el periodo seleccionado",
+      growth: analytics.growth?.taps ?? null,
+      detail: "Interacciones durante el periodo",
       accent: true,
     },
     {
       label: "Reseñas",
       value: reviewAnalytics.total_review_evidence,
+      growth: analytics.growth?.reviews ?? null,
       detail: `${reviewAnalytics.attributed_reviews} con atribución`,
     },
     {
@@ -309,7 +311,7 @@ function Dashboard({ business, onNavigate }) {
             <p className="review-summary-note">
               {reviewAnalytics.total_review_evidence === 0
                 ? "Todavía no hay reseñas registradas."
-                : "Reseñas registradas en Dukkah."}
+                : "Reseñas detectadas por Dukkah."}
             </p>
 
             {reviewAnalytics.total_review_evidence === 0 && (
@@ -341,7 +343,7 @@ function Dashboard({ business, onNavigate }) {
             )}
 
             <div className="review-summary-row">
-              <span>Sin atribución</span>
+              <span>No atribuidas</span>
               <strong>{reviewAnalytics.unattributed_reviews}</strong>
             </div>
 

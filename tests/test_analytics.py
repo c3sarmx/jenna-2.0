@@ -1,5 +1,5 @@
 from datetime import date
-from unittest.mock import patch
+from unittest.mock import call, patch
 
 from app import create_app
 
@@ -148,11 +148,18 @@ def test_analytics_passes_date_filters():
 
     assert response.status_code == 200
 
-    analytics_mock.assert_called_once_with(
-        business_id=4,
-        date_from="2026-08-01",
-        date_to="2026-08-29",
-    )
+    assert analytics_mock.call_args_list == [
+        call(
+            business_id=4,
+            date_from="2026-08-01",
+            date_to="2026-08-29",
+        ),
+        call(
+            business_id=4,
+            date_from="2026-07-03",
+            date_to="2026-07-31",
+        ),
+    ]
 
 
 def test_analytics_includes_review_analytics():
@@ -306,14 +313,92 @@ def test_analytics_accepts_valid_date_range():
 
     assert response.status_code == 200
 
-    analytics_mock.assert_called_once_with(
-        business_id=4,
-        date_from="2026-08-01",
-        date_to="2026-08-29",
-    )
+    assert analytics_mock.call_args_list == [
+        call(
+            business_id=4,
+            date_from="2026-08-01",
+            date_to="2026-08-29",
+        ),
+        call(
+            business_id=4,
+            date_from="2026-07-03",
+            date_to="2026-07-31",
+        ),
+    ]
 
-    review_analytics_mock.assert_called_once_with(
-        business_id=4,
-        date_from="2026-08-01",
-        date_to="2026-08-29",
-    )
+    assert review_analytics_mock.call_args_list == [
+        call(
+            business_id=4,
+            date_from="2026-08-01",
+            date_to="2026-08-29",
+        ),
+        call(
+            business_id=4,
+            date_from="2026-07-03",
+            date_to="2026-07-31",
+        ),
+    ]
+
+
+def test_analytics_includes_growth_for_selected_period():
+    client = make_app().test_client()
+    login_session(client)
+
+    current_summary = (30, 3, 120, 10, 15, 5)
+    previous_summary = (20, 3, 110, 7, 10, 3)
+
+    current_reviews = {
+        "total_review_evidence": 6,
+        "attributed_reviews": 4,
+        "unattributed_reviews": 2,
+        "reviews_by_waiter": [],
+    }
+
+    previous_reviews = {
+        "total_review_evidence": 4,
+        "attributed_reviews": 3,
+        "unattributed_reviews": 1,
+        "reviews_by_waiter": [],
+    }
+
+    with patch(
+        "app.auth.decorators.user_has_business_access",
+        return_value=True,
+    ), patch(
+        "app.routes.analytics.get_business_analytics",
+        side_effect=[
+            (current_summary, [], [], []),
+            (previous_summary, [], [], []),
+        ],
+    ) as analytics_mock, patch(
+        "app.routes.analytics.get_review_analytics",
+        side_effect=[
+            current_reviews,
+            previous_reviews,
+        ],
+    ) as review_analytics_mock:
+        response = client.get(
+            "/api/businesses/4/analytics"
+            "?date_from=2026-08-01&date_to=2026-08-30"
+        )
+
+    assert response.status_code == 200
+
+    body = response.get_json()
+
+    assert body["growth"] == {
+        "taps": 50.0,
+        "reviews": 50.0,
+    }
+
+    assert analytics_mock.call_args_list[1].kwargs == {
+        "business_id": 4,
+        "date_from": "2026-07-02",
+        "date_to": "2026-07-31",
+    }
+
+    assert review_analytics_mock.call_args_list[1].kwargs == {
+        "business_id": 4,
+        "date_from": "2026-07-02",
+        "date_to": "2026-07-31",
+    }

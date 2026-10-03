@@ -32,6 +32,7 @@ function Settings({ business }) {
   const [weeklyReviewsPerWaiter, setWeeklyReviewsPerWaiter] = useState("");
 
   const [reviewSyncEnabled, setReviewSyncEnabled] = useState(true);
+  const [confirmDisableSync, setConfirmDisableSync] = useState(false);
   const [reviewSyncInterval, setReviewSyncInterval] = useState("5");
   const [reviewSyncTimezone, setReviewSyncTimezone] = useState(
     "America/Mexico_City"
@@ -346,8 +347,8 @@ function Settings({ business }) {
 
         <p className="settings-description">
           Define cuándo Dukkah puede consultar Google para detectar
-          nuevas reseñas. La sincronización respeta este horario y
-          utiliza el intervalo configurado.
+          nuevas reseñas. La sincronización se ejecuta automáticamente
+          dentro de estos horarios.
         </p>
 
         <div className="settings-sync-status">
@@ -365,7 +366,13 @@ function Settings({ business }) {
               onChange={(event) => {
                 setSyncSaved(false);
                 setSyncError(null);
-                setReviewSyncEnabled(event.target.checked);
+
+                if (!event.target.checked) {
+                  setConfirmDisableSync(true);
+                  return;
+                }
+
+                setReviewSyncEnabled(true);
               }}
               disabled={savingSync}
             />
@@ -375,44 +382,23 @@ function Settings({ business }) {
 
         <div className="settings-sync-grid">
           <div className="settings-field">
-            <label htmlFor="review-sync-interval">
-              Intervalo
-            </label>
+            <span className="settings-field-label">
+              Frecuencia de sincronización
+            </span>
 
-            <div className="settings-field-inline">
-              <input
-                id="review-sync-interval"
-                type="number"
-                min="1"
-                step="1"
-                value={reviewSyncInterval}
-                onChange={(event) => {
-                  setSyncSaved(false);
-                  setSyncError(null);
-                  setReviewSyncInterval(event.target.value);
-                }}
-                disabled={savingSync}
-              />
-              <span>minutos</span>
+            <div className="settings-readonly-value">
+              Cada {reviewSyncInterval} minutos
             </div>
           </div>
 
           <div className="settings-field">
-            <label htmlFor="review-sync-timezone">
+            <span className="settings-field-label">
               Zona horaria
-            </label>
+            </span>
 
-            <input
-              id="review-sync-timezone"
-              type="text"
-              value={reviewSyncTimezone}
-              onChange={(event) => {
-                setSyncSaved(false);
-                setSyncError(null);
-                setReviewSyncTimezone(event.target.value);
-              }}
-              disabled={savingSync}
-            />
+            <div className="settings-readonly-value">
+              {reviewSyncTimezone}
+            </div>
           </div>
         </div>
 
@@ -547,6 +533,50 @@ function Settings({ business }) {
               : "Guardar sincronización"}
           </button>
         </div>
+
+        {confirmDisableSync && (
+          <div className="settings-confirm-backdrop">
+            <div
+              className="settings-confirm-modal"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="disable-sync-title"
+            >
+              <div className="settings-confirm-content">
+                <strong id="disable-sync-title">
+                  ¿Desactivar la sincronización automática?
+                </strong>
+
+                <p>
+                  Dukkah dejará de consultar Google automáticamente para
+                  detectar nuevas reseñas. Podrás volver a activarla cuando
+                  quieras.
+                </p>
+              </div>
+
+              <div className="settings-confirm-actions">
+                <button
+                  type="button"
+                  className="settings-confirm-cancel"
+                  onClick={() => setConfirmDisableSync(false)}
+                >
+                  Cancelar
+                </button>
+
+                <button
+                  type="button"
+                  className="settings-confirm-danger"
+                  onClick={() => {
+                    setConfirmDisableSync(false);
+                    setReviewSyncEnabled(false);
+                  }}
+                >
+                  Desactivar sincronización
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </section>
     </div>
   );

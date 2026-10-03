@@ -207,7 +207,7 @@ function AppShell() {
 
         <div className="sidebar-footer">
           <div className="status-dot" />
-          <span>Sistema operativo</span>
+          <span>JENNA x LIO.</span>
         </div>
       </aside>
 
