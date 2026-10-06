@@ -1,10 +1,10 @@
-# Dukkah 2.0
+# JENNA 2.0
 
 A SaaS platform for managing QR/NFC interactions, restaurant reviews, staff activity, and operational analytics.
 
 ## Overview
 
-Dukkah 2.0 is a web-based platform designed for restaurants to centralize customer interaction data, staff activity, review information, and operational metrics.
+JENNA 2.0 is a web-based platform designed for restaurants to centralize customer interaction data, staff activity, review information, and operational metrics.
 
 The platform combines QR/NFC interaction tracking with review synchronization and attribution workflows, allowing businesses to analyze activity from a centralized dashboard.
 
@@ -27,7 +27,7 @@ The platform combines QR/NFC interaction tracking with review synchronization an
 
 ## Architecture
 
-Dukkah 2.0 is structured as a Flask API and a React frontend.
+JENNA 2.0 is structured as a Flask API and a React frontend.
 
 ```text
 Client
@@ -85,7 +85,7 @@ PostgreSQL
 ## Project Structure
 
 ```text
-dukkah-2.0/
+jenna-2.0/
 ├── app/
 │   ├── routes/
 │   ├── services/
@@ -125,7 +125,7 @@ Key service areas include:
 
 ## Review Attribution
 
-A core part of Dukkah is the separation between customer interactions and confirmed review attribution.
+A core part of JENNA is the separation between customer interactions and confirmed review attribution.
 
 A QR/NFC interaction represents an interaction with the system. It is not automatically treated as proof that the interaction resulted in a review.
 
@@ -149,4 +149,4 @@ Secrets and environment-specific configuration are excluded from version control
 
 Active development.
 
-Dukkah 2.0 is also used as a software engineering portfolio project demonstrating backend development, API design, database-driven applications, external API integrations, automated processing, testing, and frontend development.
+JENNA 2.0 is also used as a software engineering portfolio project demonstrating backend development, API design, database-driven applications, external API integrations, automated processing, testing, and frontend development.
